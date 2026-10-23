@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0b1220">
+<title>Alles Gute, Emma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1220; --ink:#f3f6fa; --muted:#aab5c4; --accent:#f0c37a; --accent-ink:#1a1407;
+    --card:rgba(255,255,255,.055); --line:rgba(255,255,255,.12);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+
+  /* ---------- Hero / 3D map ---------- */
+  .hero{position:relative;height:100vh;height:100svh;min-height:560px;overflow:hidden;
+    background:linear-gradient(180deg,#0d1a2e 0%,#22405f 42%,#6f8fb1 70%,#d8c3ab 100%)}
+  #scene{position:absolute;inset:0}
+  #scene canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+  .shade-top{position:absolute;left:0;right:0;top:0;height:46%;pointer-events:none;
+    background:linear-gradient(180deg,rgba(11,18,32,.82) 0%,rgba(11,18,32,.35) 55%,rgba(11,18,32,0) 100%)}
+  .shade-bottom{position:absolute;left:0;right:0;bottom:0;height:22%;pointer-events:none;
+    background:linear-gradient(0deg,rgba(11,18,32,1) 0%,rgba(11,18,32,0) 100%)}
+  .hero-top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 30px) 22px 0;text-align:center;pointer-events:none}
+  .hero-top .kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+  .hero-top h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:clamp(34px,9vw,54px);line-height:1.02;margin:0 0 12px;letter-spacing:-.01em;text-shadow:0 2px 24px rgba(0,0,0,.45)}
+  .hero-top p{margin:0 auto;max-width:420px;color:#dfe6ef;font-size:15px;text-shadow:0 1px 12px rgba(0,0,0,.5)}
+  .hero-bottom{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 18px);text-align:center;pointer-events:none;color:var(--muted);font-size:13px;letter-spacing:.04em}
+  .hero-bottom .chev{display:block;width:12px;height:12px;margin:8px auto 0;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);animation:bob 1.8s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(45deg);opacity:.6}50%{transform:translateY(6px) rotate(45deg);opacity:1}}
+
+  /* labels on the map */
+  #labels{position:absolute;inset:0;pointer-events:none}
+  .pill{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;
+    padding:7px 12px 7px 10px;border-radius:999px;background:rgba(12,20,34,.74);border:1px solid rgba(255,255,255,.2);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:13px;line-height:1;white-space:nowrap;
+    display:flex;align-items:center;gap:8px;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:opacity .35s,transform .35s;user-select:none;-webkit-user-select:none}
+  .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  .pill .r{color:var(--muted);font-size:11px}
+  .pill.hidden{opacity:0;pointer-events:none;transform:translate(-50%,-80%)}
+  .pill::after{content:"";position:absolute;left:50%;bottom:-6px;width:1px;height:6px;background:rgba(255,255,255,.35)}
+
+  /* callout after tapping a house */
+  #callout{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translate(-50%,16px);width:min(92vw,420px);
+    background:rgba(12,20,34,.86);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-radius:20px;padding:16px 16px 14px;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  #callout.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+  #callout .c-lake{font-family:"Cormorant Garamond",serif;font-size:28px;font-weight:600;line-height:1.05;margin:0}
+  #callout .c-sub{color:var(--muted);font-size:13px;margin:4px 0 12px}
+  #callout .c-row{display:flex;gap:10px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;font-weight:600;font-size:14px;text-decoration:none;border:1px solid transparent;cursor:pointer;line-height:1;font-family:inherit}
+  .btn.primary{background:var(--accent);color:var(--accent-ink)}
+  .btn.ghost{background:rgba(255,255,255,.06);border-color:var(--line);color:var(--ink)}
+  .btn.grow{flex:1}
+
+  /* ---------- Cards ---------- */
+  main{position:relative;max-width:680px;margin:0 auto;padding:34px 18px 20px}
+  .intro{text-align:center;color:var(--muted);font-size:14px;margin:0 0 26px}
+  .card{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:24px;padding:24px 20px 20px;margin:0 0 22px;scroll-margin-top:16px;transition:box-shadow .5s,border-color .5s}
+  .card.is-active{border-color:rgba(240,195,122,.7);box-shadow:0 0 0 1px rgba(240,195,122,.5),0 24px 70px rgba(0,0,0,.4)}
+  .eyebrow{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+  .eyebrow .n{width:22px;height:22px;border-radius:50%;border:1px solid rgba(240,195,122,.6);display:inline-flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:0}
+  .card h2{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:36px;line-height:1.02;margin:0 0 4px;letter-spacing:-.01em}
+  .card .where{color:var(--muted);font-size:14px;margin:0 0 16px}
+  .badge{display:inline-block;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-size:12px;color:#e6ecf4;margin:0 6px 6px 0}
+  .scene-art{margin:14px 0 18px;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+  .scene-art svg{display:block;width:100%;height:auto}
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 18px}
+  .fact{background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+  .fact .l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .fact .v{font-size:15px;font-weight:600;margin:0;line-height:1.3}
+  .fact .v small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}
+  .card h3{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  .card p.body{margin:0;font-size:15.5px;color:#e9eef5}
+  .list{list-style:none;padding:0;margin:0}
+  .list li{position:relative;padding:7px 0 7px 22px;border-top:1px solid rgba(255,255,255,.07);font-size:14.5px;color:#e4eaf2}
+  .list li:first-child{border-top:0}
+  .list li::before{content:"";position:absolute;left:3px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--accent);opacity:.9}
+  .list li b{color:#fff;font-weight:600}
+  .actions{display:flex;gap:10px;margin-top:20px}
+  .actions .btn{flex:1;padding:13px 10px;font-size:13.5px}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 20px calc(env(safe-area-inset-bottom) + 40px);line-height:1.7}
+  footer .big{font-family:"Cormorant Garamond",serif;font-size:26px;color:var(--ink);font-style:italic;margin:0 0 6px}
+
+  @media (prefers-reduced-motion:reduce){.hero-bottom .chev{animation:none}}
+  @media (min-width:700px){.card{padding:32px 32px 28px}.card h2{font-size:42px}}
+</style>
+</head>
+<body>
+
+<header class="hero" id="hero">
+  <div id="scene" aria-label="Winterkarte mit drei Häusern"></div>
+  <div class="shade-top"></div>
+  <div class="shade-bottom"></div>
+  <div class="hero-top">
+    <p class="kicker">15. bis 18. Januar 2027</p>
+    <h1>Alles Gute zum Geburtstag, Emma.</h1>
+    <p>Drei Nächte in Bayern. Drei Häuser an drei Seen. Du suchst aus.</p>
+  </div>
+  <div id="labels"></div>
+  <div id="callout" role="dialog" aria-live="polite">
+    <p class="c-lake" id="c-lake"></p>
+    <p class="c-sub" id="c-sub"></p>
+    <div class="c-row">
+      <button class="btn ghost" id="c-back" type="button">Zurück</button>
+      <button class="btn primary grow" id="c-more" type="button">Mehr dazu</button>
+    </div>
+  </div>
+  <div class="hero-bottom">Tippe ein Haus an<span class="chev"></span></div>
+</header>
+
+<main>
+  <p class="intro">Alle Fahrzeiten mit dem Auto ab Zuhause. Die Karte oben ist gemalt, nicht maßstäblich.</p>
+
+  <!-- 1 · Weißensee -->
+  <section class="card" id="card-weissensee">
+    <p class="eyebrow"><span class="n">1</span> Allgäu · Ostallgäu</p>
+    <h2>Weißensee</h2>
+    <p class="where">bei Füssen, 5 Minuten vor Schloss Neuschwanstein</p>
+    <span class="badge">Ferienwohnung</span><span class="badge">37 m²</span><span class="badge">Seeblick</span><span class="badge">Eigene Küche</span>
+    <div class="scene-art" aria-hidden="true">
+      <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="sk1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2d4a"/><stop offset="1" stop-color="#8aa6c6"/></linearGradient>
+        <linearGradient id="ice1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9e7f1"/><stop offset="1" stop-color="#b9cfe0"/></linearGradient></defs>
+        <rect width="640" height="240" fill="url(#sk1)"/>
+        <polygon points="0,150 90,70 150,120 230,40 320,130 410,60 480,110 560,55 640,120 640,240 0,240" fill="#c9d7e4"/>
+        <polygon points="0,150 90,70 150,120 230,40 320,130 410,60 480,110 560,55 640,120 640,175 0,175" fill="#f3f7fb" opacity=".85"/>
+        <polygon points="40,175 140,150 260,165 380,148 520,160 640,150 640,240 0,240 0,185" fill="#2c4860"/>
+        <ellipse cx="330" cy="205" rx="250" ry="34" fill="url(#ice1)"/>
+        <g transform="translate(455,166)"><rect x="-14" y="0" width="28" height="18" fill="#e9dcc5"/><polygon points="-18,0 0,-14 18,0" fill="#4a3a30"/><polygon points="-18,0 0,-14 18,0" fill="#fff" opacity=".55" transform="translate(0,-3)"/><rect x="-5" y="6" width="5" height="6" fill="#ffd27a"/><rect x="3" y="6" width="5" height="6" fill="#ffd27a"/></g>
+        <g fill="#1f3d2e"><polygon points="60,178 72,150 84,178"/><polygon points="90,178 100,156 110,178"/><polygon points="560,178 572,150 584,178"/><polygon points="595,178 605,156 615,178"/></g>
+      </svg>
+    </div>
+    <div class="facts">
+      <div class="fact"><p class="l">Fahrzeit</p><p class="v">ca. 7,5 Std.<small>745 km, A1 und A7</small></p></div>
+      <div class="fact"><p class="l">Das Haus</p><p class="v">Ferienwohnung<small>Familie Karabag wohnt im Haus</small></p></div>
+      <div class="fact"><p class="l">Zum Wasser</p><p class="v">Direkt am Strandbad<small>wenige Schritte bis zum Ufer</small></p></div>
+      <div class="fact"><p class="l">Höhe</p><p class="v">790 m<small>im Januar meist Schnee</small></p></div>
+    </div>
+    <h3>So ist es da</h3>
+    <p class="body">Ein kleiner, ruhiger See am Rand von Füssen, direkt am Fuß der Berge: hinter dem Südufer geht es sofort steil hoch zum Alatsee, zum Vilser Kegel und zur Burgruine Falkenstein. Die Wohnung ist hell und modern, hat eine eigene Küche, ein Bad mit Dusche und einen Blick über den See. Frühstück machen wir uns selbst, der Dorfladen ist zu Fuß erreichbar. Bei Frost friert der Weißensee oft zu und die Leute laufen Schlittschuh.</p>
+    <h3>Rund um das Haus</h3>
+    <ul class="list">
+      <li><b>Rundweg um den Weißensee</b>, etwa eine Stunde, startet vor der Tür.</li>
+      <li><b>Alatsee</b>, kleiner Bergsee im Wald, 25 Minuten zu Fuß bergauf.</li>
+      <li><b>Burgruine Falkenstein</b>, die höchstgelegene Burgruine Deutschlands, 10 Minuten mit dem Auto.</li>
+      <li><b>Neuschwanstein und Hohenschwangau</b>, 15 Minuten. Tegelbergbahn mit Winterwegen oben.</li>
+      <li><b>Füssen Altstadt</b> mit Lechfall und Cafés, 10 Minuten. Kristall-Therme Schwangau zum Aufwärmen.</li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Gschrifter+Stra%C3%9Fe+5c%2C+87629+F%C3%BCssen&travelmode=driving">Route anzeigen</a>
+      <button class="btn ghost" type="button" data-focus="weissensee">Auf der Karte</button>
+    </div>
+  </section>
+
+  <!-- 2 · Simssee -->
+  <section class="card" id="card-simssee">
+    <p class="eyebrow"><span class="n">2</span> Chiemgau · bei Rosenheim</p>
+    <h2>Simssee</h2>
+    <p class="where">Riedering-Ecking, zwischen Rosenheim und Chiemsee</p>
+    <span class="badge">Gasthof-Zimmer</span><span class="badge">Frühstück inklusive</span><span class="badge">Seeblick</span><span class="badge">Restaurant im Haus</span>
+    <div class="scene-art" aria-hidden="true">
+      <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="sk2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#20314f"/><stop offset="1" stop-color="#c9b39b"/></linearGradient>
+        <linearGradient id="w2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5c84a3"/><stop offset="1" stop-color="#2f556f"/></linearGradient></defs>
+        <rect width="640" height="240" fill="url(#sk2)"/>
+        <polygon points="0,135 110,95 200,120 300,80 400,118 500,88 640,125 640,150 0,150" fill="#aab9cb"/>
+        <polygon points="0,135 110,95 200,120 300,80 400,118 500,88 640,125 640,134 0,140" fill="#f5f8fb" opacity=".7"/>
+        <polygon points="0,150 640,150 640,240 0,240" fill="#e8eef4"/>
+        <ellipse cx="300" cy="200" rx="300" ry="36" fill="url(#w2)"/>
+        <g transform="translate(520,160)"><rect x="-26" y="0" width="52" height="22" fill="#f0e6d3"/><polygon points="-30,0 0,-16 30,0" fill="#5a3e32"/><polygon points="-30,0 0,-16 30,0" fill="#fff" opacity=".5" transform="translate(0,-3)"/><rect x="-18" y="7" width="6" height="7" fill="#ffd27a"/><rect x="-6" y="7" width="6" height="7" fill="#ffd27a"/><rect x="6" y="7" width="6" height="7" fill="#ffd27a"/><rect x="16" y="7" width="6" height="7" fill="#ffd27a"/></g>
+        <g fill="#2a4a3a"><polygon points="40,160 52,136 64,160"/><polygon points="72,160 82,142 92,160"/><polygon points="600,160 610,140 620,160"/></g>
+      </svg>
+    </div>
+    <div class="facts">
+      <div class="fact"><p class="l">Fahrzeit</p><p class="v">ca. 8 Std.<small>796 km, A7 und A8</small></p></div>
+      <div class="fact"><p class="l">Das Haus</p><p class="v">Gasthof Seewirt<small>Zimmer mit Seeblick, Frühstück dabei</small></p></div>
+      <div class="fact"><p class="l">Zum Wasser</p><p class="v">Direkt am Ufer<small>Seeterrasse vor dem Haus</small></p></div>
+      <div class="fact"><p class="l">Berge</p><p class="v">Am Horizont<small>20 bis 30 Minuten Fahrt</small></p></div>
+    </div>
+    <h3>So ist es da</h3>
+    <p class="body">Ein echtes bayerisches Wirtshaus, das direkt am Wasser steht: Der Seewirt in Ecking liegt am Ostufer des Simssees, mit Blick über den See auf die Chiemgauer Alpen. Wir schlafen in einem Doppelzimmer mit Seeblick, frühstücken unten im Gasthof und sitzen abends beim Essen am selben Platz. Der Simssee ist ruhig und offen, ringsum Wiesen und Dörfer, die Berge stehen als Kulisse dahinter. Von allen drei Orten der gemütlichste, nicht der wildeste.</p>
+    <h3>Rund um das Haus</h3>
+    <ul class="list">
+      <li><b>Uferweg am Simssee</b>, flach und still, direkt vom Haus los.</li>
+      <li><b>Chiemsee</b> mit Herreninsel und Fraueninsel, 15 Minuten.</li>
+      <li><b>Hochries und Kampenwand</b>, Bergbahnen mit Winterwegen oben, 25 bis 30 Minuten.</li>
+      <li><b>Wendelstein</b> mit Zahnradbahn auf 1.800 m, 30 Minuten.</li>
+      <li><b>Chiemgau Thermen Bad Endorf</b>, 10 Minuten. Rosenheim mit Altstadt, 15 Minuten.</li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Seewirt+Ecking%2C+Am+See+27%2C+83083+Riedering&travelmode=driving">Route anzeigen</a>
+      <button class="btn ghost" type="button" data-focus="simssee">Auf der Karte</button>
+    </div>
+  </section>
+
+  <!-- 3 · Königssee -->
+  <section class="card" id="card-koenigssee">
+    <p class="eyebrow"><span class="n">3</span> Berchtesgadener Land · Nationalpark</p>
+    <h2>Königssee</h2>
+    <p class="where">Schönau am Königssee, am Fuß von Watzmann und Jenner</p>
+    <span class="badge">Ferienwohnung</span><span class="badge">Dachgeschoss</span><span class="badge">Balkon mit Bergblick</span><span class="badge">Eigene Küche</span>
+    <div class="scene-art" aria-hidden="true">
+      <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="sk3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101c30"/><stop offset="1" stop-color="#7f99b8"/></linearGradient>
+        <linearGradient id="w3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6a70"/><stop offset="1" stop-color="#17404a"/></linearGradient></defs>
+        <rect width="640" height="240" fill="url(#sk3)"/>
+        <polygon points="0,240 0,120 70,30 150,110 210,60 260,130 320,20 380,120 440,50 500,110 580,25 640,110 640,240" fill="#9fb0c3"/>
+        <polygon points="0,120 70,30 150,110 210,60 260,130 320,20 380,120 440,50 500,110 580,25 640,110 640,135 0,135" fill="#f4f7fa" opacity=".8"/>
+        <polygon points="0,135 180,135 260,240 0,240" fill="#4b5f72"/>
+        <polygon points="640,135 460,135 380,240 640,240" fill="#4b5f72"/>
+        <polygon points="200,135 440,135 420,240 220,240" fill="url(#w3)"/>
+        <g transform="translate(320,172)"><rect x="-12" y="0" width="24" height="16" fill="#e9dcc5"/><polygon points="-16,0 0,-12 16,0" fill="#4a3a30"/><polygon points="-16,0 0,-12 16,0" fill="#fff" opacity=".55" transform="translate(0,-3)"/><rect x="-4" y="5" width="4" height="5" fill="#ffd27a"/><rect x="2" y="5" width="4" height="5" fill="#ffd27a"/></g>
+        <g fill="#1d3a2d"><polygon points="90,150 102,124 114,150"/><polygon points="120,150 130,130 140,150"/><polygon points="520,150 532,124 544,150"/><polygon points="550,150 560,130 570,150"/></g>
+      </svg>
+    </div>
+    <div class="facts">
+      <div class="fact"><p class="l">Fahrzeit</p><p class="v">ca. 9 Std.<small>876 km, A7 und A8</small></p></div>
+      <div class="fact"><p class="l">Das Haus</p><p class="v">Ferienwohnung<small>klein, gemütlich, unterm Dach</small></p></div>
+      <div class="fact"><p class="l">Zum Wasser</p><p class="v">25 Min. zu Fuß<small>5 Minuten mit Auto oder Bus</small></p></div>
+      <div class="fact"><p class="l">Höhe</p><p class="v">620 m<small>Berge ringsum bis 2.700 m</small></p></div>
+    </div>
+    <h3>So ist es da</h3>
+    <p class="body">Das große Bergkino. Der Königssee liegt wie ein Fjord zwischen senkrechten Felswänden, am Ende steht die kleine Kirche St. Bartholomä unter der Watzmann-Ostwand. Die Wohnung ist eine kleine Dachgeschosswohnung in einer ruhigen Spielstraße in Schönau, mit Balkon Richtung Berge, eigener Küche und Parkplatz. Zum See sind es 25 Minuten zu Fuß oder ein paar Minuten mit dem Bus, der mit der Gästekarte frei ist. Das Haus ist einfach, dafür ist alles drumherum groß.</p>
+    <h3>Rund um das Haus</h3>
+    <ul class="list">
+      <li><b>Bootsfahrt nach St. Bartholomä</b>, fährt auch im Januar jeden Tag, mit dem berühmten Echo unterwegs.</li>
+      <li><b>Malerwinkel-Rundweg</b> am Königssee, eine Stunde, die berühmteste Aussicht auf den See.</li>
+      <li><b>Jennerbahn</b> auf 1.800 m, Winterpanorama über den See und den Watzmann.</li>
+      <li><b>Hintersee und Zauberwald</b> in Ramsau, 15 Minuten.</li>
+      <li><b>Berchtesgaden</b> mit Salzbergwerk und Watzmann-Therme, 10 Minuten. Salzburg, 35 Minuten.</li>
+    </ul>
+    <div class="actions">
+      <a class="btn primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Sch%C3%B6nau+am+K%C3%B6nigssee&travelmode=driving">Route anzeigen</a>
+      <button class="btn ghost" type="button" data-focus="koenigssee">Auf der Karte</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p class="big">Drei Nächte. Du sagst, wo.</p>
+  Weißensee, Simssee oder Königssee. Sobald du dich entschieden hast, wird gebucht.
+</footer>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- content ---------- */
+const HOUSES = [
+  { id:'weissensee', lake:'Weißensee', region:'Allgäu',               sub:'Haus am See · Ferienwohnung direkt am Strandbad', pos:[-30, 0, 66] },
+  { id:'simssee',    lake:'Simssee',    region:'Chiemgau',             sub:'Seewirt Ecking · Gasthof-Zimmer mit Seeblick',   pos:[40, 0, 12] },
+  { id:'koenigssee', lake:'Königssee',  region:'Berchtesgadener Land', sub:'Fewo Sonnwend · Ferienwohnung in Schönau',       pos:[20, 0, -22] },
+];
+const LAKES = [
+  { id:'weissensee', cx:-30, cz:54, rx:14, rz:8,  color:0xcfe0ec, rough:.5,  metal:.05 }, // frozen, pale
+  { id:'simssee',    cx:22,  cz:10, rx:16, rz:11, color:0x3e6d8a, rough:.25, metal:.5  },
+  { id:'koenigssee', cx:18,  cz:-50, rx:8, rz:24, color:0x1b4a55, rough:.2,  metal:.6  },
+];
+const MAP_W = 130, MAP_D = 180;
+
+/* ---------- noise ---------- */
+function hash(x, z){ const s = Math.sin(x*127.1 + z*311.7) * 43758.5453; return s - Math.floor(s); }
+function noise2(x, z){
+  const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
+  const u = xf*xf*(3-2*xf), v = zf*zf*(3-2*zf);
+  const a = hash(xi,zi), b = hash(xi+1,zi), c = hash(xi,zi+1), d = hash(xi+1,zi+1);
+  return (a*(1-u)+b*u)*(1-v) + (c*(1-u)+d*u)*v;
+}
+function fbm(x, z, oct=4){ let a=.5, f=1, s=0; for(let i=0;i<oct;i++){ s += a*noise2(x*f, z*f); f*=2.03; a*=.5; } return s; }
+function ridged(x, z){ let a=.5, f=1, s=0; for(let i=0;i<4;i++){ const n = 1 - Math.abs(noise2(x*f, z*f)*2-1); s += a*n*n; f*=2.1; a*=.5; } return s; }
+const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x-e0)/(e1-e0))); return t*t*(3-2*t); };
+const gauss = (d, w) => Math.exp(-(d*d)/w);
+
+/* ---------- terrain height ---------- */
+function lakeDist(L, x, z){ const dx=(x-L.cx)/L.rx, dz=(z-L.cz)/L.rz; return Math.sqrt(dx*dx+dz*dz); }
+function height(x, z){
+  let h = 2 + fbm(x*0.03, z*0.03)*5;                         // rolling foreland
+  let amp = 0;
+  amp += 46 * smooth(-50, -88, z);                            // the big Alps at the far end
+  amp += 24 * gauss(z-34, 110) * smooth(-4, -22, x) * (.7+.6*fbm(x*.05, 7.1));  // Allgäu ridge behind Weißensee
+  amp += 30 * gauss(x-3, 75) * smooth(-10, -30, z);            // Königssee west wall
+  amp += 30 * gauss(x-35, 75) * smooth(-10, -30, z);           // Königssee east wall
+  amp += 10 * gauss(x-58, 160) * smooth(10, -20, z);           // hills east of Simssee
+  h += amp * (0.55 + 0.75*ridged(x*0.045+3, z*0.045));        // craggy detail scales with mass
+  // lakes: carve basins
+  for (const L of LAKES){ const d = lakeDist(L, x, z); if (d < 1.2){ h = h*(1-smooth(1.2, .92, d)) + (-2.6)*smooth(1.2, .92, d); } }
+  // house pads
+  for (const H of HOUSES){ const d = Math.hypot(x-H.pos[0], z-H.pos[2]); if (d < 7){ const t = smooth(7, 3.5, d); h = h*(1-t) + 1.1*t; } }
+  // flatten toward the board edge
+  const ex = smooth(MAP_W/2, MAP_W/2-10, Math.abs(x)), ez = smooth(MAP_D/2, MAP_D/2-10, Math.abs(z));
+  h *= Math.min(ex, ez);
+  return h;
+}
+
+/* ---------- scene ---------- */
+const container = document.getElementById('scene');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'high-performance' });
+} catch(e){ console.warn('WebGL nicht verfügbar', e); }
+if (renderer){
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent) || window.innerWidth < 800;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 2 : 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x9fb4cc, 150, 330);
+  const camera = new THREE.PerspectiveCamera(46, 1, 1, 900);
+
+  // light
+  scene.add(new THREE.HemisphereLight(0xc7d9f2, 0x3b4b60, 1.0));
+  const sun = new THREE.DirectionalLight(0xffd6ad, 1.9);
+  sun.position.set(80, 60, 50);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
+  const sc = sun.shadow.camera; sc.left = -110; sc.right = 110; sc.top = 110; sc.bottom = -110; sc.near = 10; sc.far = 300;
+  sun.shadow.bias = -0.0006;
+  scene.add(sun);
+  const fill = new THREE.DirectionalLight(0x9fb7e0, .5); fill.position.set(-70, 40, -40); scene.add(fill);
+
+  // terrain
+  const SEG_X = isMobile ? 110 : 150, SEG_Z = isMobile ? 150 : 200;
+  const geo = new THREE.PlaneGeometry(MAP_W, MAP_D, SEG_X, SEG_Z);
+  geo.rotateX(-Math.PI/2);
+  const pos = geo.attributes.position;
+  for (let i=0;i<pos.count;i++){ pos.setY(i, height(pos.getX(i), pos.getZ(i))); }
+  geo.computeVertexNormals();
+  const colors = new Float32Array(pos.count*3);
+  const nrm = geo.attributes.normal;
+  const cSnow = new THREE.Color(0xf1f4f9), cSnowLow = new THREE.Color(0xdbe3ee), cRock = new THREE.Color(0x5c6470), cShore = new THREE.Color(0xc5d2de), tmp = new THREE.Color();
+  for (let i=0;i<pos.count;i++){
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const slope = 1 - nrm.getY(i);
+    tmp.copy(cSnowLow).lerp(cSnow, smooth(0, 14, y));
+    const v = (noise2(x*.25, z*.25)-.5)*.06; tmp.r += v; tmp.g += v; tmp.b += v*.6;
+    if (y > 9) tmp.lerp(cRock, smooth(.42, .72, slope) * smooth(9, 18, y));
+    let shore = 0; for (const L of LAKES){ const d = lakeDist(L, x, z); shore = Math.max(shore, smooth(1.3, 1.0, d) * smooth(.9, 1.0, d)); }
+    tmp.lerp(cShore, shore*.8);
+    colors[i*3] = tmp.r; colors[i*3+1] = tmp.g; colors[i*3+2] = tmp.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95, metalness:0, flatShading:true }));
+  terrain.receiveShadow = true; terrain.castShadow = true;
+  scene.add(terrain);
+
+  // board base (diorama)
+  const base = new THREE.Mesh(new THREE.BoxGeometry(MAP_W+2, 6, MAP_D+2), new THREE.MeshStandardMaterial({ color:0x121b2a, roughness:.9 }));
+  base.position.y = -3.2; base.receiveShadow = true; scene.add(base);
+
+  // lakes
+  for (const L of LAKES){
+    const g = new THREE.CircleGeometry(1, 64); g.rotateX(-Math.PI/2);
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color:L.color, roughness:L.rough, metalness:L.metal, transparent:true, opacity:.96 }));
+    m.scale.set(L.rx*1.06, 1, L.rz*1.06); m.position.set(L.cx, -0.35, L.cz); m.receiveShadow = true; scene.add(m);
+    if (L.id === 'weissensee'){ // ice edge ring
+      const ring = new THREE.Mesh(new THREE.RingGeometry(.86, 1.0, 64), new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.6, transparent:true, opacity:.5 }));
+      ring.rotateX(-Math.PI/2); ring.scale.set(L.rx*1.06, L.rz*1.06, 1); ring.position.set(L.cx, -0.3, L.cz); scene.add(ring);
+    }
+  }
+
+  // trees
+  const treeCount = isMobile ? 520 : 800;
+  const gTree = new THREE.ConeGeometry(1, 3.2, 6); gTree.translate(0, 1.6, 0);
+  const gCap = new THREE.ConeGeometry(.62, 1.5, 6); gCap.translate(0, 2.65, 0);
+  const trees = new THREE.InstancedMesh(gTree, new THREE.MeshStandardMaterial({ color:0x234634, roughness:.9, flatShading:true }), treeCount);
+  const caps  = new THREE.InstancedMesh(gCap,  new THREE.MeshStandardMaterial({ color:0xf4f7fb, roughness:.8, flatShading:true }), treeCount);
+  trees.castShadow = true; caps.castShadow = true;
+  const dummy = new THREE.Object3D(); let placed = 0, tries = 0;
+  while (placed < treeCount && tries < treeCount*40){
+    tries++;
+    const x = (hash(tries*1.37, 2.1)-.5)*(MAP_W-12), z = (hash(tries*2.71, 5.3)-.5)*(MAP_D-12);
+    const y = height(x, z); if (y < 1.6 || y > 30) continue;
+    if (fbm(x*.04+11, z*.04) < .42) continue;                 // clumps
+    let ok = true;
+    for (const L of LAKES) if (lakeDist(L, x, z) < 1.25) ok = false;
+    for (const H of HOUSES) if (Math.hypot(x-H.pos[0], z-H.pos[2]) < 6.5) ok = false;
+    if (!ok) continue;
+    const s = .75 + hash(x, z)*.9;
+    dummy.position.set(x, y-.2, z); dummy.scale.setScalar(s); dummy.rotation.y = hash(z, x)*6.28; dummy.updateMatrix();
+    trees.setMatrixAt(placed, dummy.matrix); caps.setMatrixAt(placed, dummy.matrix); placed++;
+  }
+  trees.count = placed; caps.count = placed; scene.add(trees); scene.add(caps);
+
+  // houses
+  const houseMeshes = [];
+  const roofGeo = (() => {                                     // triangular prism, apex on +y
+    const g = new THREE.BufferGeometry();
+    const v = new Float32Array([
+      -1.9,0,1.5,  1.9,0,1.5,  0,1.2,1.5,                          // front gable
+      1.9,0,-1.5, -1.9,0,-1.5,  0,1.2,-1.5,                        // back gable
+      -1.9,0,1.5,  0,1.2,1.5,  0,1.2,-1.5,   -1.9,0,1.5, 0,1.2,-1.5, -1.9,0,-1.5,   // left slope
+       0,1.2,1.5,  1.9,0,1.5,  1.9,0,-1.5,    0,1.2,1.5, 1.9,0,-1.5,  0,1.2,-1.5    // right slope
+    ]);
+    g.setAttribute('position', new THREE.BufferAttribute(v, 3)); g.computeVertexNormals(); return g;
+  })();
+  const windowMat = new THREE.MeshBasicMaterial({ color:0xffd27a });
+  const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const ctx = c.getContext('2d');
+    const gr = ctx.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'rgba(255,214,130,.9)'); gr.addColorStop(.4,'rgba(255,200,110,.35)'); gr.addColorStop(1,'rgba(255,190,100,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); })();
+  for (const H of HOUSES){
+    const g = new THREE.Group();
+    const y = 1.1;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.2, 2.8), new THREE.MeshStandardMaterial({ color: H.id==='simssee' ? 0xf1e7d6 : 0xe4d3b8, roughness:.85 }));
+    body.position.y = y + 1.1; body.castShadow = true; body.receiveShadow = true; g.add(body);
+    const roof = new THREE.Mesh(roofGeo, new THREE.MeshStandardMaterial({ color:0x4b392f, roughness:.9, flatShading:true }));
+    roof.position.y = y + 2.2; roof.castShadow = true; g.add(roof);
+    const snowRoof = new THREE.Mesh(roofGeo, new THREE.MeshStandardMaterial({ color:0xf6f8fb, roughness:.8, flatShading:true }));
+    snowRoof.position.y = y + 2.2 + .22; snowRoof.scale.set(1.02, 1, 1.02); g.add(snowRoof);
+    const chim = new THREE.Mesh(new THREE.BoxGeometry(.4,.8,.4), new THREE.MeshStandardMaterial({ color:0x6b5a50 })); chim.position.set(.9, y+3.4, -.5); g.add(chim);
+    for (const [wx, wz, ry] of [[-.8, 1.41, 0],[.8, 1.41, 0],[1.71, .4, Math.PI/2],[1.71, -.6, Math.PI/2]]){
+      const w = new THREE.Mesh(new THREE.PlaneGeometry(.55,.6), windowMat); w.position.set(wx, y+1.1, wz); w.rotation.y = ry; g.add(w);
+    }
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.8 }));
+    glow.scale.set(9, 9, 1); glow.position.y = y + 1.6; g.add(glow);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(3.2, 3.6, 48), new THREE.MeshBasicMaterial({ color:0xf0c37a, transparent:true, opacity:.75, side:THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI/2; ring.position.y = y + .06; g.add(ring);
+    const pin = new THREE.Mesh(new THREE.OctahedronGeometry(.7), new THREE.MeshStandardMaterial({ color:0xf0c37a, emissive:0x8a6a2a, roughness:.3, metalness:.3 }));
+    pin.position.y = y + 6; g.add(pin);
+    g.position.set(H.pos[0], 0, H.pos[2]); g.scale.setScalar(1.35);
+    g.userData = { house:H, ring, pin }; g.traverse(o => { if (o.isMesh) { o.userData.houseId = H.id; houseMeshes.push(o); } });
+    scene.add(g); H.group = g; H.world = new THREE.Vector3(H.pos[0], 1.1*1.35 + 3, H.pos[2]);
+  }
+
+  // snow
+  const snowCount = isMobile ? 1400 : 2600;
+  const sPos = new Float32Array(snowCount*3), sVel = new Float32Array(snowCount);
+  for (let i=0;i<snowCount;i++){ sPos[i*3] = (Math.random()-.5)*(MAP_W+40); sPos[i*3+1] = Math.random()*80; sPos[i*3+2] = (Math.random()-.5)*(MAP_D+40); sVel[i] = 5 + Math.random()*6; }
+  const sGeo = new THREE.BufferGeometry(); sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+  const flakeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const ctx = c.getContext('2d');
+    const gr = ctx.createRadialGradient(16,16,0,16,16,16); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.5,'rgba(255,255,255,.6)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0,0,32,32); return new THREE.CanvasTexture(c); })();
+  const snow = new THREE.Points(sGeo, new THREE.PointsMaterial({ map:flakeTex, color:0xffffff, size:1.1, transparent:true, opacity:.85, depthWrite:false, sizeAttenuation:true }));
+  scene.add(snow);
+
+  /* ---------- camera rig ---------- */
+  const center = new THREE.Vector3(2, 4, -2);
+  const rig = { dist:170, el:THREE.MathUtils.degToRad(57), az:0 };
+  const cam = { pos:new THREE.Vector3(), target:center.clone() };          // what we actually look from / at
+  const anim = { active:false, t:0, dur:1.1, fromPos:new THREE.Vector3(), fromTgt:new THREE.Vector3(), toPos:new THREE.Vector3(), toTgt:new THREE.Vector3() };
+  let focused = null;
+
+  function orbitPos(out, dist, el, az){ out.set(center.x + dist*Math.sin(az)*Math.cos(el), center.y + dist*Math.sin(el), center.z + dist*Math.cos(az)*Math.cos(el)); }
+  const corners = [];
+  for (const x of [-MAP_W/2, MAP_W/2]) for (const z of [-MAP_D/2, MAP_D/2]) corners.push(new THREE.Vector3(x, 0, z));
+  corners.push(new THREE.Vector3(0, 0, -MAP_D/2+16)); corners[corners.length-1].y = 58; // far peaks
+  const probe = new THREE.Vector3();
+  function fit(){
+    const w = container.clientWidth, h = container.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix();
+    let d = 90;
+    for (let i=0;i<80;i++){
+      orbitPos(camera.position, d, rig.el, 0); camera.lookAt(center); camera.updateMatrixWorld();
+      let ok = true;
+      for (const c of corners){ probe.copy(c).project(camera); if (Math.abs(probe.x) > .96 || probe.y > .62 || probe.y < -.98) { ok = false; break; } }
+      if (ok) break; d *= 1.04;
+    }
+    rig.dist = d;
+  }
+  fit();
+  orbitPos(cam.pos, rig.dist, rig.el, 0);
+  camera.position.copy(cam.pos); camera.lookAt(cam.target);
+
+  /* ---------- labels ---------- */
+  const labelsEl = document.getElementById('labels');
+  for (const H of HOUSES){
+    const el = document.createElement('button'); el.className = 'pill'; el.type = 'button';
+    el.innerHTML = `<span class="dot"></span>${H.lake} <span class="r">${H.region}</span>`;
+    el.addEventListener('click', e => { e.stopPropagation(); focusHouse(H); });
+    labelsEl.appendChild(el); H.label = el;
+  }
+  const calloutEl = document.getElementById('callout');
+  document.getElementById('c-back').addEventListener('click', () => unfocus());
+  document.getElementById('c-more').addEventListener('click', () => { if (focused) goToCard(focused); });
+  document.querySelectorAll('[data-focus]').forEach(b => b.addEventListener('click', () => {
+    const H = HOUSES.find(h => h.id === b.dataset.focus);
+    window.scrollTo({ top:0, behavior:'smooth' });
+    setTimeout(() => focusHouse(H), 350);
+  }));
+  function goToCard(H){
+    const card = document.getElementById('card-' + H.id);
+    card.scrollIntoView({ behavior:'smooth', block:'start' });
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('is-active'));
+    card.classList.add('is-active'); setTimeout(() => card.classList.remove('is-active'), 2600);
+  }
+  function startAnim(toPos, toTgt){
+    anim.fromPos.copy(cam.pos); anim.fromTgt.copy(cam.target); anim.toPos.copy(toPos); anim.toTgt.copy(toTgt); anim.t = 0; anim.active = true;
+  }
+  const off = new THREE.Vector3();
+  function focusHouse(H){
+    focused = H;
+    off.set(9, 13, 20);
+    if (H.id === 'koenigssee') off.set(-10, 12, 22);
+    if (H.id === 'weissensee') off.set(12, 12, 19);
+    const toPos = new THREE.Vector3().copy(H.world).add(off);
+    const toTgt = new THREE.Vector3(H.world.x, H.world.y - 1.5, H.world.z - 2);
+    startAnim(toPos, toTgt);
+    document.getElementById('c-lake').textContent = H.lake;
+    document.getElementById('c-sub').textContent = H.sub;
+    calloutEl.classList.add('show');
+    HOUSES.forEach(h => h.label.classList.add('hidden'));
+  }
+  function unfocus(){
+    focused = null; calloutEl.classList.remove('show');
+    HOUSES.forEach(h => h.label.classList.remove('hidden'));
+    const toPos = new THREE.Vector3(); orbitPos(toPos, rig.dist, rig.el, rig.az);
+    startAnim(toPos, center);
+  }
+
+  /* ---------- tap handling (does not block page scrolling) ---------- */
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let down = null;
+  renderer.domElement.addEventListener('pointerdown', e => { down = { x:e.clientX, y:e.clientY, t:performance.now() }; });
+  renderer.domElement.addEventListener('pointerup', e => {
+    if (!down) return; const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y), dt = performance.now()-down.t; down = null;
+    if (moved > 10 || dt > 500) return;
+    const r = renderer.domElement.getBoundingClientRect();
+    ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+    ray.setFromCamera(ndc, camera);
+    const hit = ray.intersectObjects(houseMeshes, false)[0];
+    if (hit){ const H = HOUSES.find(h => h.id === hit.object.userData.houseId); if (H) focusHouse(H); }
+    else if (focused) unfocus();
+  });
+
+  /* ---------- loop ---------- */
+  let visible = true; const io = new IntersectionObserver(en => { visible = en[0].isIntersecting; }, { threshold:0 }); io.observe(container);
+  const clock = new THREE.Clock(); let t = 0;
+  const ease = x => x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
+  const tmpV = new THREE.Vector3();
+  function frame(){
+    requestAnimationFrame(frame);
+    if (!visible || document.hidden) return;
+    const dt = Math.min(clock.getDelta(), .05); t += dt;
+    // camera
+    if (anim.active){
+      anim.t += dt/anim.dur; const k = ease(Math.min(1, anim.t));
+      cam.pos.lerpVectors(anim.fromPos, anim.toPos, k); cam.target.lerpVectors(anim.fromTgt, anim.toTgt, k);
+      if (anim.t >= 1) anim.active = false;
+    } else if (!focused){
+      rig.az = reduceMotion ? 0 : Math.sin(t*.12)*0.07;
+      orbitPos(cam.pos, rig.dist, rig.el + (reduceMotion ? 0 : Math.sin(t*.09)*.015), rig.az); cam.target.copy(center);
+    }
+    camera.position.copy(cam.pos); camera.lookAt(cam.target);
+    // snow
+    if (!reduceMotion){
+      const a = sGeo.attributes.position.array;
+      for (let i=0;i<snowCount;i++){ a[i*3+1] -= sVel[i]*dt; a[i*3] += Math.sin(t*.8 + i)*dt*1.2; if (a[i*3+1] < -1){ a[i*3+1] = 80; a[i*3] = (Math.random()-.5)*(MAP_W+40); a[i*3+2] = (Math.random()-.5)*(MAP_D+40); } }
+      sGeo.attributes.position.needsUpdate = true;
+    }
+    // markers
+    for (const H of HOUSES){
+      const { ring, pin } = H.group.userData;
+      const p = 1 + Math.sin(t*2.2)*.08; ring.scale.set(p, p, 1); ring.material.opacity = .45 + Math.sin(t*2.2)*.25;
+      pin.position.y = 1.1 + 6 + Math.sin(t*1.7 + H.pos[0])*.35; pin.rotation.y = t*.9;
+      // label position
+      tmpV.copy(H.world).add(new THREE.Vector3(0, 7.5*1.35, 0)).project(camera);
+      const x = (tmpV.x*.5+.5)*container.clientWidth, y = (-tmpV.y*.5+.5)*container.clientHeight;
+      H.label.style.left = x + 'px'; H.label.style.top = y + 'px';
+    }
+    renderer.render(scene, camera);
+  }
+  frame();
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { fit(); if (!focused) { orbitPos(cam.pos, rig.dist, rig.el, rig.az); } }, 120); });
+}
+</script>
+</body>
+</html>
