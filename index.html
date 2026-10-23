@@ -21,13 +21,13 @@
 
   /* ---------- Hero / 3D map ---------- */
   .hero{position:relative;height:100vh;height:100svh;min-height:560px;overflow:hidden;
-    background:linear-gradient(180deg,#0d1a2e 0%,#22405f 42%,#6f8fb1 70%,#d8c3ab 100%)}
+    background:linear-gradient(180deg,#0b1220 0%,#1c2b4a 26%,#5f6f9c 48%,#c9b4c4 66%,#f0d6d4 80%,#f4dcd8 100%)}
   #scene{position:absolute;inset:0}
   #scene canvas{display:block;width:100%;height:100%;touch-action:pan-y}
-  .shade-top{position:absolute;left:0;right:0;top:0;height:46%;pointer-events:none;
-    background:linear-gradient(180deg,rgba(11,18,32,.82) 0%,rgba(11,18,32,.35) 55%,rgba(11,18,32,0) 100%)}
-  .shade-bottom{position:absolute;left:0;right:0;bottom:0;height:22%;pointer-events:none;
-    background:linear-gradient(0deg,rgba(11,18,32,1) 0%,rgba(11,18,32,0) 100%)}
+  .shade-top{position:absolute;left:0;right:0;top:0;height:34%;pointer-events:none;
+    background:linear-gradient(180deg,rgba(11,18,32,.55) 0%,rgba(11,18,32,.25) 50%,rgba(11,18,32,0) 100%)}
+  .shade-bottom{position:absolute;left:0;right:0;bottom:0;height:16%;pointer-events:none;
+    background:linear-gradient(0deg,rgba(11,18,32,1) 0%,rgba(11,18,32,.6) 45%,rgba(11,18,32,0) 100%)}
   .hero-top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 30px) 22px 0;text-align:center;pointer-events:none}
   .hero-top .kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
   .hero-top h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:clamp(34px,9vw,54px);line-height:1.02;margin:0 0 12px;letter-spacing:-.01em;text-shadow:0 2px 24px rgba(0,0,0,.45)}
@@ -38,6 +38,8 @@
 
   /* labels on the map */
   #labels{position:absolute;inset:0;pointer-events:none}
+  #labels.static{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;inset:auto 0 18% 0}
+  #labels.static .pill{position:static;transform:none}
   .pill{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;
     padding:7px 12px 7px 10px;border-radius:999px;background:rgba(12,20,34,.74);border:1px solid rgba(255,255,255,.2);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:13px;line-height:1;white-space:nowrap;
@@ -52,6 +54,8 @@
     background:rgba(12,20,34,.86);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
     border-radius:20px;padding:16px 16px 14px;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;box-shadow:0 20px 60px rgba(0,0,0,.45)}
   #callout.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+  #callout.show ~ .hero-bottom{opacity:0;transition:opacity .3s}
+  .hero-bottom{transition:opacity .3s}
   #callout .c-lake{font-family:"Cormorant Garamond",serif;font-size:28px;font-weight:600;line-height:1.05;margin:0}
   #callout .c-sub{color:var(--muted);font-size:13px;margin:4px 0 12px}
   #callout .c-row{display:flex;gap:10px}
@@ -250,22 +254,16 @@
 </footer>
 
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import * as THREE from './three.module.min.js';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- content ---------- */
 const HOUSES = [
-  { id:'weissensee', lake:'Weißensee', region:'Allgäu',               sub:'Haus am See · Ferienwohnung direkt am Strandbad', pos:[-30, 0, 66] },
-  { id:'simssee',    lake:'Simssee',    region:'Chiemgau',             sub:'Seewirt Ecking · Gasthof-Zimmer mit Seeblick',   pos:[40, 0, 12] },
-  { id:'koenigssee', lake:'Königssee',  region:'Berchtesgadener Land', sub:'Fewo Sonnwend · Ferienwohnung in Schönau',       pos:[20, 0, -22] },
+  { id:'weissensee', lake:'Weißensee', region:'Allgäu',               sub:'Haus am See · Ferienwohnung direkt am Strandbad' },
+  { id:'simssee',    lake:'Simssee',    region:'Chiemgau',             sub:'Seewirt Ecking · Gasthof-Zimmer mit Seeblick' },
+  { id:'koenigssee', lake:'Königssee',  region:'Berchtesgadener Land', sub:'Fewo Sonnwend · Ferienwohnung in Schönau' },
 ];
-const LAKES = [
-  { id:'weissensee', cx:-30, cz:54, rx:14, rz:8,  color:0xcfe0ec, rough:.5,  metal:.05 }, // frozen, pale
-  { id:'simssee',    cx:22,  cz:10, rx:16, rz:11, color:0x3e6d8a, rough:.25, metal:.5  },
-  { id:'koenigssee', cx:18,  cz:-50, rx:8, rz:24, color:0x1b4a55, rough:.2,  metal:.6  },
-];
-const MAP_W = 130, MAP_D = 180;
 
 /* ---------- noise ---------- */
 function hash(x, z){ const s = Math.sin(x*127.1 + z*311.7) * 43758.5453; return s - Math.floor(s); }
@@ -275,209 +273,357 @@ function noise2(x, z){
   const a = hash(xi,zi), b = hash(xi+1,zi), c = hash(xi,zi+1), d = hash(xi+1,zi+1);
   return (a*(1-u)+b*u)*(1-v) + (c*(1-u)+d*u)*v;
 }
-function fbm(x, z, oct=4){ let a=.5, f=1, s=0; for(let i=0;i<oct;i++){ s += a*noise2(x*f, z*f); f*=2.03; a*=.5; } return s; }
-function ridged(x, z){ let a=.5, f=1, s=0; for(let i=0;i<4;i++){ const n = 1 - Math.abs(noise2(x*f, z*f)*2-1); s += a*n*n; f*=2.1; a*=.5; } return s; }
-const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x-e0)/(e1-e0))); return t*t*(3-2*t); };
-const gauss = (d, w) => Math.exp(-(d*d)/w);
+function fbm(x, z, oct=3){ let a=.5, f=1, s=0, n=0; for(let i=0;i<oct;i++){ s += a*noise2(x*f, z*f); n += a; f*=2.07; a*=.5; } return s/n; }
+let seed = 7; const rnd = () => { seed = (seed*9301 + 49297) % 233280; return seed/233280; };
+const lerp = (a,b,t) => a+(b-a)*t;
 
-/* ---------- terrain height ---------- */
-function lakeDist(L, x, z){ const dx=(x-L.cx)/L.rx, dz=(z-L.cz)/L.rz; return Math.sqrt(dx*dx+dz*dz); }
-function height(x, z){
-  let h = 2 + fbm(x*0.03, z*0.03)*5;                         // rolling foreland
-  let amp = 0;
-  amp += 46 * smooth(-50, -88, z);                            // the big Alps at the far end
-  amp += 24 * gauss(z-34, 110) * smooth(-4, -22, x) * (.7+.6*fbm(x*.05, 7.1));  // Allgäu ridge behind Weißensee
-  amp += 30 * gauss(x-3, 75) * smooth(-10, -30, z);            // Königssee west wall
-  amp += 30 * gauss(x-35, 75) * smooth(-10, -30, z);           // Königssee east wall
-  amp += 10 * gauss(x-58, 160) * smooth(10, -20, z);           // hills east of Simssee
-  h += amp * (0.55 + 0.75*ridged(x*0.045+3, z*0.045));        // craggy detail scales with mass
-  // lakes: carve basins
-  for (const L of LAKES){ const d = lakeDist(L, x, z); if (d < 1.2){ h = h*(1-smooth(1.2, .92, d)) + (-2.6)*smooth(1.2, .92, d); } }
-  // house pads
-  for (const H of HOUSES){ const d = Math.hypot(x-H.pos[0], z-H.pos[2]); if (d < 7){ const t = smooth(7, 3.5, d); h = h*(1-t) + 1.1*t; } }
-  // flatten toward the board edge
-  const ex = smooth(MAP_W/2, MAP_W/2-10, Math.abs(x)), ez = smooth(MAP_D/2, MAP_D/2-10, Math.abs(z));
-  h *= Math.min(ex, ez);
-  return h;
+/* ---------- hex grid ---------- */
+const R = 1, SQ3 = Math.sqrt(3);
+const COLS = 9, ROWS = 20;                        // col -9..9, row -20..20
+const hexWorld = (col,row) => [SQ3*R*(col + 0.5*(row&1)), 1.5*R*row];
+const tiles = [];                                 // {col,row,x,z,type,h}
+const key = (c,r) => c+','+r; const byKey = new Map();
+for (let row=-ROWS; row<=ROWS; row++) for (let col=-COLS; col<=COLS; col++){
+  const [x,z] = hexWorld(col,row);
+  const e = (x/16.6)**2 + (z/29.5)**2 + (noise2(x*.13+5, z*.13)-.5)*.45;
+  if (e > 1) continue;
+  const t = { col,row,x,z,type:'meadow',h:0,trees:[],houses:[] };
+  tiles.push(t); byKey.set(key(col,row), t);
 }
+const inEllipse = (t,cx,cz,rx,rz) => ((t.x-cx)/rx)**2 + ((t.z-cz)/rz)**2 < 1;
+const LAKES = {
+  weissensee:{ cx:-6.5, cz:16.0,  rx:3.5, rz:2.7, frozen:true },
+  simssee:   { cx:5.0,  cz:1.5,   rx:4.3, rz:3.4, frozen:false },
+  koenigssee:{ cx:1.8,  cz:-14.5, rx:2.2, rz:6.9, frozen:false },
+};
+for (const t of tiles) for (const [id,L] of Object.entries(LAKES)) if (inEllipse(t,L.cx,L.cz,L.rx,L.rz)) t.type = 'water', t.lake = id;
+// St. Bartholomä peninsula inside the Königssee
+const nearest = (px,pz,pred) => { let best=null, bd=1e9; for (const t of tiles){ if (pred && !pred(t)) continue; const d=(t.x-px)**2+(t.z-pz)**2; if (d<bd){bd=d;best=t;} } return best; };
+const bartl = nearest(1.8-1.73, -15.0, t => t.lake==='koenigssee'); bartl.type = 'church'; delete bartl.lake; bartl.church = 'bartholomae';
+// mountains: far north band + fjord walls
+for (const t of tiles){
+  if (t.type !== 'meadow') continue;
+  const n = fbm(t.x*.18+3, t.z*.18);
+  const north = t.z < -22.5 || (t.z < -20.5 && n > .45);
+  const wallW = t.x < 1.8-3.2 && t.x > 1.8-9.5 && t.z < -7.5 && t.z > -22.5;
+  const wallE = t.x > 1.8+3.2 && t.x < 1.8+9.5 && t.z < -7.5 && t.z > -22.5;
+  const sw = t.x < -11 && t.z > 6 && n > .5;      // a few hills in the south-west
+  if (north || wallW || wallE || sw){ t.type = 'mountain'; const m = fbm(t.x*.11+21, t.z*.11+4); const edge = Math.min(1, (-t.z-18)/6); t.h = (wallW||wallE) ? 2.2 + 2.6*m + (Math.abs(t.x-1.8)<6 ? 1.0 : 0) : 1.4 + 4.2*m*(.55+.45*Math.max(0,edge)); }
+}
+// heights for land + water
+for (const t of tiles){
+  if (t.type === 'water') t.h = 0.34;
+  else if (t.type !== 'mountain') t.h = 0.6 + 0.35*fbm(t.x*.22, t.z*.22+9);
+}
+// hero houses: nearest land hex to a point on the shore
+const heroSpots = { weissensee:[-3.0,18.4], simssee:[10.1,1.9], koenigssee:[2.6,-6.0] };
+for (const H of HOUSES){
+  const [px,pz] = heroSpots[H.id];
+  const t = nearest(px,pz, t => t.type==='meadow'); t.type = 'hero'; t.hero = H; t.h = 0.72; H.tile = t;
+}
+// villages
+const villages = [ [7.8,5.8,3.0], [-4.6,20.2,2.5], [4.0,-3.6,2.2], [-11,2,1.7], [5,12.5,1.6], [-2,7.5,1.3], [-8,-6,1.5] ];
+for (const t of tiles){
+  if (t.type !== 'meadow') continue;
+  for (const [vx,vz,vr] of villages) if ((t.x-vx)**2+(t.z-vz)**2 < vr*vr && rnd() < .8) { t.type = 'village'; break; }
+}
+// second church in the Simssee village
+const ch2 = nearest(9.2, 6.6, t => t.type==='village'); if (ch2){ ch2.type = 'church'; ch2.church = 'village'; }
+// forests, fields, meadows
+for (const t of tiles){
+  if (t.type !== 'meadow') continue;
+  const f = fbm(t.x*.16+11, t.z*.16+2), g = fbm(t.x*.3+40, t.z*.3+7);
+  let nearWater = false; for (const [id,L] of Object.entries(LAKES)) if (inEllipse(t,L.cx,L.cz,L.rx*1.35,L.rz*1.35)) nearWater = true;
+  if (f > .50 || (f > .42 && t.z < -9)) t.type = 'forest';
+  else if (g > .6 && !nearWater && t.z > -14) t.type = 'field';
+}
+// make sure every hero tile has a free neighbour path: nothing to do, trees avoid hero tiles
 
 /* ---------- scene ---------- */
 const container = document.getElementById('scene');
 let renderer;
-try {
-  renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'high-performance' });
-} catch(e){ console.warn('WebGL nicht verfügbar', e); }
+try { renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'high-performance' }); }
+catch(e){ console.warn('WebGL nicht verfügbar', e); }
+
+const labelsEl = document.getElementById('labels');
+if (!renderer){
+  // static fallback: three buttons
+  labelsEl.classList.add('static');
+  for (const H of HOUSES){
+    const el = document.createElement('button'); el.className='pill'; el.type='button';
+    el.innerHTML = `<span class="dot"></span>${H.lake} <span class="r">${H.region}</span>`;
+    el.addEventListener('click', () => document.getElementById('card-'+H.id).scrollIntoView({behavior:'smooth'}));
+    labelsEl.appendChild(el);
+  }
+}
 if (renderer){
   const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent) || window.innerWidth < 800;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 2 : 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x9fb4cc, 150, 330);
-  const camera = new THREE.PerspectiveCamera(46, 1, 1, 900);
+  scene.fog = new THREE.Fog(0xe8cfd4, 60, 140);
+  const camera = new THREE.PerspectiveCamera(42, 1, .5, 500);
 
-  // light
-  scene.add(new THREE.HemisphereLight(0xc7d9f2, 0x3b4b60, 1.0));
-  const sun = new THREE.DirectionalLight(0xffd6ad, 1.9);
-  sun.position.set(80, 60, 50);
+  // light: low winter sun from the upper left
+  scene.add(new THREE.HemisphereLight(0xf6dde3, 0x5a6a80, .95));
+  const sun = new THREE.DirectionalLight(0xffe4c4, 2.3);
+  sun.position.set(-28, 42, 22);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
-  const sc = sun.shadow.camera; sc.left = -110; sc.right = 110; sc.top = 110; sc.bottom = -110; sc.near = 10; sc.far = 300;
-  sun.shadow.bias = -0.0006;
+  sun.shadow.mapSize.set(isMobile ? 2048 : 4096, isMobile ? 2048 : 4096);
+  Object.assign(sun.shadow.camera, { left:-36, right:36, top:36, bottom:-36, near:5, far:150 });
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = .02;
   scene.add(sun);
-  const fill = new THREE.DirectionalLight(0x9fb7e0, .5); fill.position.set(-70, 40, -40); scene.add(fill);
+  const fill = new THREE.DirectionalLight(0xa9bddc, .45); fill.position.set(30, 25, -20); scene.add(fill);
 
-  // terrain
-  const SEG_X = isMobile ? 110 : 150, SEG_Z = isMobile ? 150 : 200;
-  const geo = new THREE.PlaneGeometry(MAP_W, MAP_D, SEG_X, SEG_Z);
-  geo.rotateX(-Math.PI/2);
-  const pos = geo.attributes.position;
-  for (let i=0;i<pos.count;i++){ pos.setY(i, height(pos.getX(i), pos.getZ(i))); }
-  geo.computeVertexNormals();
-  const colors = new Float32Array(pos.count*3);
-  const nrm = geo.attributes.normal;
-  const cSnow = new THREE.Color(0xf1f4f9), cSnowLow = new THREE.Color(0xdbe3ee), cRock = new THREE.Color(0x5c6470), cShore = new THREE.Color(0xc5d2de), tmp = new THREE.Color();
-  for (let i=0;i<pos.count;i++){
-    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    const slope = 1 - nrm.getY(i);
-    tmp.copy(cSnowLow).lerp(cSnow, smooth(0, 14, y));
-    const v = (noise2(x*.25, z*.25)-.5)*.06; tmp.r += v; tmp.g += v; tmp.b += v*.6;
-    if (y > 9) tmp.lerp(cRock, smooth(.42, .72, slope) * smooth(9, 18, y));
-    let shore = 0; for (const L of LAKES){ const d = lakeDist(L, x, z); shore = Math.max(shore, smooth(1.3, 1.0, d) * smooth(.9, 1.0, d)); }
-    tmp.lerp(cShore, shore*.8);
-    colors[i*3] = tmp.r; colors[i*3+1] = tmp.g; colors[i*3+2] = tmp.b;
+  /* ---- geometry helpers ---- */
+  function merge(list){                              // merge non-indexed geometries (position+normal+uv)
+    const geos = list.map(g => g.index ? g.toNonIndexed() : g);
+    const n = geos.reduce((a,g)=>a+g.attributes.position.count,0);
+    const pos = new Float32Array(n*3), nor = new Float32Array(n*3), uv = new Float32Array(n*2); let o=0;
+    for (const g of geos){ const c=g.attributes.position.count;
+      pos.set(g.attributes.position.array, o*3); nor.set(g.attributes.normal.array, o*3);
+      if (g.attributes.uv) uv.set(g.attributes.uv.array, o*2); o+=c; }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.BufferAttribute(pos,3)); out.setAttribute('normal', new THREE.BufferAttribute(nor,3)); out.setAttribute('uv', new THREE.BufferAttribute(uv,2));
+    return out;
   }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  const terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95, metalness:0, flatShading:true }));
-  terrain.receiveShadow = true; terrain.castShadow = true;
-  scene.add(terrain);
+  function hexTop(r){                                 // flat hexagon in xz, vertex on +z (matches CylinderGeometry)
+    const g = new THREE.BufferGeometry(); const v=[], nrm=[], uv=[];
+    for (let i=0;i<6;i++){ const a0=i/6*Math.PI*2, a1=(i+1)/6*Math.PI*2;
+      v.push(0,0,0, r*Math.sin(a0),0,r*Math.cos(a0), r*Math.sin(a1),0,r*Math.cos(a1)); nrm.push(0,1,0,0,1,0,0,1,0);
+      uv.push(.5,.5, .5+.5*Math.sin(a0),.5+.5*Math.cos(a0), .5+.5*Math.sin(a1),.5+.5*Math.cos(a1)); }
+    g.setAttribute('position', new THREE.Float32BufferAttribute(v,3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm,3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv,2));
+    return g;
+  }
+  function prism(w,h,d){                               // gable roof, apex on +y, base at y=0
+    const g = new THREE.BufferGeometry(); const x=w/2, z=d/2;
+    const v = new Float32Array([ -x,0,z, x,0,z, 0,h,z,   x,0,-z, -x,0,-z, 0,h,-z,
+      -x,0,z, 0,h,z, 0,h,-z,  -x,0,z, 0,h,-z, -x,0,-z,   0,h,z, x,0,z, x,0,-z,  0,h,z, x,0,-z, 0,h,-z,
+      -x,0,-z, x,0,-z, x,0,z,  -x,0,-z, x,0,z, -x,0,z ]);
+    g.setAttribute('position', new THREE.BufferAttribute(v,3)); g.computeVertexNormals();
+    g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(v.length/3*2),2)); return g;
+  }
+  const stripeTex = (a,b) => { const c=document.createElement('canvas'); c.width=64; c.height=64; const x=c.getContext('2d'); x.fillStyle=a; x.fillRect(0,0,64,64); x.fillStyle=b; for(let i=0;i<64;i+=8) x.fillRect(0,i,64,4); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; };
+  const sideTex = (top,bottom,split) => { const c=document.createElement('canvas'); c.width=4; c.height=64; const x=c.getContext('2d'); x.fillStyle=bottom; x.fillRect(0,0,4,64); x.fillStyle=top; x.fillRect(0,0,4,Math.round(64*split)); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.magFilter=THREE.NearestFilter; return t; };
+  const softTex = (() => { const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); const g=x.createRadialGradient(32,32,0,32,32,32); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.45,'rgba(255,255,255,.75)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); })();
 
-  // board base (diorama)
-  const base = new THREE.Mesh(new THREE.BoxGeometry(MAP_W+2, 6, MAP_D+2), new THREE.MeshStandardMaterial({ color:0x121b2a, roughness:.9 }));
-  base.position.y = -3.2; base.receiveShadow = true; scene.add(base);
+  const col = new THREE.Color(); const dummy = new THREE.Object3D(); const m4 = new THREE.Matrix4();
+  const inst = (geo, mat, n, shadow=true) => { const m = new THREE.InstancedMesh(geo, mat, Math.max(1,n)); m.count = 0; m.castShadow = shadow; m.receiveShadow = true; m.frustumCulled = false; scene.add(m); return m; };
+  const put = (mesh, x,y,z, ry=0, sx=1, sy=1, sz=1, c=null) => { dummy.position.set(x,y,z); dummy.rotation.set(0,ry,0); dummy.scale.set(sx,sy,sz); dummy.updateMatrix(); mesh.setMatrixAt(mesh.count, dummy.matrix); if (c) mesh.setColorAt(mesh.count, c); mesh.count++; };
 
-  // lakes
-  for (const L of LAKES){
-    const g = new THREE.CircleGeometry(1, 64); g.rotateX(-Math.PI/2);
-    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color:L.color, roughness:L.rough, metalness:L.metal, transparent:true, opacity:.96 }));
-    m.scale.set(L.rx*1.06, 1, L.rz*1.06); m.position.set(L.cx, -0.35, L.cz); m.receiveShadow = true; scene.add(m);
-    if (L.id === 'weissensee'){ // ice edge ring
-      const ring = new THREE.Mesh(new THREE.RingGeometry(.86, 1.0, 64), new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.6, transparent:true, opacity:.5 }));
-      ring.rotateX(-Math.PI/2); ring.scale.set(L.rx*1.06, L.rz*1.06, 1); ring.position.set(L.cx, -0.3, L.cz); scene.add(ring);
+  /* ---- tiles ---- */
+  const N = tiles.length;
+  const sideGeo = new THREE.CylinderGeometry(R*.985, R*.985, 1, 6, 1, true); sideGeo.translate(0,.5,0);
+  const topGeo = hexTop(R*.985);
+  const landSide = inst(sideGeo, new THREE.MeshStandardMaterial({ map:sideTex('#eef2f6','#7d6757',.22), roughness:.95, flatShading:true }), N);
+  const rockSide = inst(sideGeo, new THREE.MeshStandardMaterial({ map:sideTex('#f0f3f7','#7b838d',.34), roughness:.95, flatShading:true }), N);
+  const waterSide = inst(sideGeo, new THREE.MeshStandardMaterial({ color:0x8fb6c9, roughness:.6 }), N);
+  const snowTop = inst(topGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.92 }), N);
+  const fieldTop = inst(topGeo, new THREE.MeshStandardMaterial({ map:stripeTex('#dfe5ec','#c8d2dd'), roughness:.9 }), N);
+  const waterTop = inst(topGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.28, metalness:.12 }), N, false);
+  const iceTop = inst(topGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.45, metalness:.05 }), N, false);
+  const cSnowA = new THREE.Color(0xeef2f6), cSnowB = new THREE.Color(0xf8fafc), cSnowBlue = new THREE.Color(0xdfe7f1);
+  for (const t of tiles){
+    const tint = fbm(t.x*.5+77, t.z*.5+3);
+    if (t.type === 'water'){
+      const L = LAKES[t.lake];
+      put(waterSide, t.x,0,t.z, 0, 1,t.h,1, col.set(L.frozen ? 0xa9c4d6 : 0x6f9fba));
+      if (L.frozen){ put(iceTop, t.x,t.h+.01,t.z, 0,1,1,1, col.set(0xbcd6e6).lerp(new THREE.Color(0xd8e8f1), tint)); }
+      else { put(waterTop, t.x,t.h+.01,t.z, 0,1,1,1, col.set(t.lake==='koenigssee' ? 0x4f8aa8 : 0x6fa6c4).lerp(new THREE.Color(0x8fbdd6), tint*.6)); }
+      continue;
+    }
+    if (t.type === 'mountain'){ put(rockSide, t.x,0,t.z, 0,1,t.h,1); put(snowTop, t.x,t.h+.01,t.z, 0,1,1,1, col.copy(cSnowB)); continue; }
+    put(landSide, t.x,0,t.z, 0,1,t.h,1);
+    if (t.type === 'field'){ put(fieldTop, t.x,t.h+.01,t.z, (Math.floor(rnd()*3))*Math.PI/3, 1,1,1); continue; }
+    col.copy(cSnowA).lerp(cSnowB, tint); if (t.type==='forest') col.lerp(cSnowBlue, .5);
+    put(snowTop, t.x,t.h+.01,t.z, 0,1,1,1, col);
+  }
+  // ice patches on the frozen lake
+  const patchGeo = hexTop(R*.45);
+  const patches = inst(patchGeo, new THREE.MeshStandardMaterial({ color:0xf7fafc, roughness:.5, transparent:true, opacity:.85 }), 40, false);
+  for (const t of tiles) if (t.lake==='weissensee' && rnd()<.5) put(patches, t.x+(rnd()-.5)*.6, t.h+.02, t.z+(rnd()-.5)*.6, rnd()*6, .6+rnd()*.8, 1, .6+rnd()*.8);
+
+  /* ---- mountain peaks ---- */
+  const peakGeo = new THREE.ConeGeometry(.95, 1, 6); peakGeo.translate(0,.5,0);
+  const peaks = inst(peakGeo, new THREE.MeshStandardMaterial({ color:0x858d97, roughness:.95, flatShading:true }), 200);
+  const peakSnowGeo = new THREE.ConeGeometry(.5, 1, 6); peakSnowGeo.translate(0,.5,0);
+  const peakSnow = inst(peakSnowGeo, new THREE.MeshStandardMaterial({ color:0xf7f9fc, roughness:.9, flatShading:true }), 200);
+  for (const t of tiles) if (t.type==='mountain' && (t.h > 4.6 || (t.h > 3.4 && rnd() < .18))){
+    const ph = .8 + rnd()*1.2, ry = rnd()*6;
+    put(peaks, t.x, t.h, t.z, ry, 1, ph, 1);
+    put(peakSnow, t.x, t.h + ph*.42, t.z, ry, 1.0, ph*.6, 1.0);
+  }
+
+  /* ---- trees ---- */
+  const firGeo = merge([
+    (()=>{const g=new THREE.ConeGeometry(.42,.7,6); g.translate(0,.55,0); return g;})(),
+    (()=>{const g=new THREE.ConeGeometry(.34,.6,6); g.translate(0,.95,0); return g;})(),
+    (()=>{const g=new THREE.ConeGeometry(.24,.55,6); g.translate(0,1.32,0); return g;})(),
+    (()=>{const g=new THREE.CylinderGeometry(.06,.07,.3,5); g.translate(0,.15,0); return g;})(),
+  ]);
+  const firSnowGeo = merge([
+    (()=>{const g=new THREE.ConeGeometry(.33,.26,6); g.translate(0,.8,0); return g;})(),
+    (()=>{const g=new THREE.ConeGeometry(.25,.24,6); g.translate(0,1.15,0); return g;})(),
+    (()=>{const g=new THREE.ConeGeometry(.17,.42,6); g.translate(0,1.43,0); return g;})(),
+  ]);
+  const roundGeo = merge([
+    (()=>{const g=new THREE.IcosahedronGeometry(.36,1); g.translate(0,.62,0); return g;})(),
+    (()=>{const g=new THREE.CylinderGeometry(.05,.06,.35,5); g.translate(0,.17,0); return g;})(),
+  ]);
+  const roundSnowGeo = (()=>{const g=new THREE.IcosahedronGeometry(.3,1); g.scale(1,.6,1); g.translate(0,.84,0); return g;})();
+  const MAXT = 2600;
+  const firs = inst(firGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.9, flatShading:true }), MAXT);
+  const firSnow = inst(firSnowGeo, new THREE.MeshStandardMaterial({ color:0xf6f8fb, roughness:.9, flatShading:true }), MAXT);
+  const rounds = inst(roundGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.9, flatShading:true }), 600);
+  const roundSnow = inst(roundSnowGeo, new THREE.MeshStandardMaterial({ color:0xf6f8fb, roughness:.9, flatShading:true }), 600);
+  const greens = [0x1f4d36, 0x27613f, 0x1b4231, 0x2f6b45, 0x305a3a];
+  const hexPt = (t, rad) => { let x,z; do { x=(rnd()*2-1)*rad; z=(rnd()*2-1)*rad; } while (Math.abs(z)+Math.abs(x)*.577 > rad || Math.abs(x) > rad*.87); return [t.x+x, t.z+z]; };
+  for (const t of tiles){
+    let n = 0, rad = .78;
+    if (t.type==='forest') n = 5 + Math.floor(rnd()*3);
+    else if (t.type==='meadow') n = rnd() < .45 ? 1 + Math.floor(rnd()*2) : 0;
+    else if (t.type==='village' || t.type==='church') { n = rnd() < .5 ? 1 : 0; rad = .85; }
+    else if (t.type==='mountain' && t.h < 3) n = rnd() < .5 ? 1 + Math.floor(rnd()*2) : 0;
+    for (let i=0;i<n;i++){
+      const [x,z] = hexPt(t, rad); const s = .75 + rnd()*.6, ry = rnd()*6;
+      col.set(greens[Math.floor(rnd()*greens.length)]);
+      if (rnd() < .78){ if (firs.count < MAXT){ put(firs, x,t.h,z, ry, s,s,s, col); put(firSnow, x,t.h,z, ry, s,s,s); } }
+      else if (rounds.count < 600){ put(rounds, x,t.h,z, ry, s,s*.9,s, col); put(roundSnow, x,t.h,z, ry, s,s*.9,s); }
     }
   }
 
-  // trees
-  const treeCount = isMobile ? 520 : 800;
-  const gTree = new THREE.ConeGeometry(1, 3.2, 6); gTree.translate(0, 1.6, 0);
-  const gCap = new THREE.ConeGeometry(.62, 1.5, 6); gCap.translate(0, 2.65, 0);
-  const trees = new THREE.InstancedMesh(gTree, new THREE.MeshStandardMaterial({ color:0x234634, roughness:.9, flatShading:true }), treeCount);
-  const caps  = new THREE.InstancedMesh(gCap,  new THREE.MeshStandardMaterial({ color:0xf4f7fb, roughness:.8, flatShading:true }), treeCount);
-  trees.castShadow = true; caps.castShadow = true;
-  const dummy = new THREE.Object3D(); let placed = 0, tries = 0;
-  while (placed < treeCount && tries < treeCount*40){
-    tries++;
-    const x = (hash(tries*1.37, 2.1)-.5)*(MAP_W-12), z = (hash(tries*2.71, 5.3)-.5)*(MAP_D-12);
-    const y = height(x, z); if (y < 1.6 || y > 30) continue;
-    if (fbm(x*.04+11, z*.04) < .42) continue;                 // clumps
-    let ok = true;
-    for (const L of LAKES) if (lakeDist(L, x, z) < 1.25) ok = false;
-    for (const H of HOUSES) if (Math.hypot(x-H.pos[0], z-H.pos[2]) < 6.5) ok = false;
-    if (!ok) continue;
-    const s = .75 + hash(x, z)*.9;
-    dummy.position.set(x, y-.2, z); dummy.scale.setScalar(s); dummy.rotation.y = hash(z, x)*6.28; dummy.updateMatrix();
-    trees.setMatrixAt(placed, dummy.matrix); caps.setMatrixAt(placed, dummy.matrix); placed++;
+  /* ---- small houses ---- */
+  const bodyGeo = new THREE.BoxGeometry(.5,.4,.42); bodyGeo.translate(0,.2,0);
+  const roofGeo = prism(.6,.3,.52);
+  const chimGeo = new THREE.BoxGeometry(.08,.16,.08); chimGeo.translate(0,.08,0);
+  const winGeo = new THREE.PlaneGeometry(.1,.12);
+  const bodies = inst(bodyGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.85 }), 400);
+  const roofs = inst(roofGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.85, flatShading:true }), 400);
+  const roofSnow = inst(prism(.62,.3,.54), new THREE.MeshStandardMaterial({ color:0xf6f8fb, roughness:.9, flatShading:true, transparent:true, opacity:.9 }), 400, false);
+  const chims = inst(chimGeo, new THREE.MeshStandardMaterial({ color:0x6b5d55, roughness:.9 }), 400, false);
+  const wins = inst(winGeo, new THREE.MeshBasicMaterial({ color:0xffcf7a }), 1200, false);
+  const walls = [0xf4ead8, 0xfaf6ee, 0xe9d9bd, 0xf1e4cf, 0xe4dccf, 0xd9c7a8];
+  const roofCols = [0xa8402f, 0xb44a36, 0x3f7f86, 0x5a6775, 0x7a4a3a, 0x9c3a2e, 0x3d6f74];
+  const smokeBases = [];
+  const addHouse = (x,y,z,ry,scale=1,snowy=true) => {
+    put(bodies, x,y,z, ry, scale,scale,scale, col.set(walls[Math.floor(rnd()*walls.length)]));
+    put(roofs, x,y+.4*scale,z, ry, scale,scale,scale, col.set(roofCols[Math.floor(rnd()*roofCols.length)]));
+    if (snowy && rnd()<.7) put(roofSnow, x,y+.4*scale+.05*scale,z, ry, scale,scale*.5,scale);
+    dummy.position.set(x,y,z); dummy.rotation.set(0,ry,0); dummy.scale.setScalar(scale); dummy.updateMatrix();
+    for (const [wx,wz,wry] of [[-.13,.211,0],[.13,.211,0],[.251,.1,Math.PI/2]]){
+      m4.makeRotationY(wry); m4.setPosition(wx,.2,wz); m4.premultiply(dummy.matrix); wins.setMatrixAt(wins.count++, m4);
+    }
+    if (rnd() < .55){
+      m4.identity(); m4.setPosition(.15,.52,-.1); m4.premultiply(dummy.matrix); chims.setMatrixAt(chims.count++, m4);
+      const p = new THREE.Vector3(.15,.68,-.1).applyMatrix4(dummy.matrix); smokeBases.push(p);
+    }
+  };
+  for (const t of tiles){
+    if (t.type !== 'village') continue;
+    const n = 2 + Math.floor(rnd()*3); const taken = [];
+    for (let i=0;i<n;i++){
+      let x,z,ok=false; for (let k=0;k<12 && !ok;k++){ [x,z] = hexPt(t,.62); ok = taken.every(([a,b]) => (a-x)**2+(b-z)**2 > .42); }
+      if (!ok) continue; taken.push([x,z]);
+      addHouse(x, t.h, z, Math.floor(rnd()*4)*Math.PI/2 + (rnd()-.5)*.3, .85 + rnd()*.35);
+    }
   }
-  trees.count = placed; caps.count = placed; scene.add(trees); scene.add(caps);
 
-  // houses
+  /* ---- churches ---- */
+  function church(t, big){
+    const g = new THREE.Group(); const s = big ? 1.15 : 1;
+    const wall = new THREE.MeshStandardMaterial({ color:0xf7f3ea, roughness:.85 });
+    const red = new THREE.MeshStandardMaterial({ color:0xa83c30, roughness:.8, flatShading:true });
+    const nave = new THREE.Mesh(new THREE.BoxGeometry(.55,.45,1.0), wall); nave.position.y=.225; g.add(nave);
+    const nroof = new THREE.Mesh(prism(.64,.32,1.06), red); nroof.position.y=.45; g.add(nroof);
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(.3,.95,.3), wall); tower.position.set(0,.475,.42); g.add(tower);
+    const onion = new THREE.Mesh(new THREE.SphereGeometry(.2,10,8), red); onion.scale.set(1,1.35,1); onion.position.set(0,1.1,.42); g.add(onion);
+    const spire = new THREE.Mesh(new THREE.ConeGeometry(.05,.3,6), new THREE.MeshStandardMaterial({ color:0xd6b25a, metalness:.6, roughness:.4 })); spire.position.set(0,1.45,.42); g.add(spire);
+    if (big){ const o2 = onion.clone(); o2.position.set(0,1.1,-.42); g.add(o2); const t2 = tower.clone(); t2.position.set(0,.475,-.42); g.add(t2); const s2 = spire.clone(); s2.position.set(0,1.45,-.42); g.add(s2); }
+    g.traverse(o => { if (o.isMesh){ o.castShadow = true; o.receiveShadow = true; } });
+    g.position.set(t.x, t.h, t.z); g.rotation.y = big ? Math.PI/2 : rnd()*6; g.scale.setScalar(s); scene.add(g);
+  }
+  for (const t of tiles) if (t.type==='church') church(t, t.church==='bartholomae');
+
+  /* ---- hero houses ---- */
   const houseMeshes = [];
-  const roofGeo = (() => {                                     // triangular prism, apex on +y
-    const g = new THREE.BufferGeometry();
-    const v = new Float32Array([
-      -1.9,0,1.5,  1.9,0,1.5,  0,1.2,1.5,                          // front gable
-      1.9,0,-1.5, -1.9,0,-1.5,  0,1.2,-1.5,                        // back gable
-      -1.9,0,1.5,  0,1.2,1.5,  0,1.2,-1.5,   -1.9,0,1.5, 0,1.2,-1.5, -1.9,0,-1.5,   // left slope
-       0,1.2,1.5,  1.9,0,1.5,  1.9,0,-1.5,    0,1.2,1.5, 1.9,0,-1.5,  0,1.2,-1.5    // right slope
-    ]);
-    g.setAttribute('position', new THREE.BufferAttribute(v, 3)); g.computeVertexNormals(); return g;
-  })();
-  const windowMat = new THREE.MeshBasicMaterial({ color:0xffd27a });
-  const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const ctx = c.getContext('2d');
-    const gr = ctx.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'rgba(255,214,130,.9)'); gr.addColorStop(.4,'rgba(255,200,110,.35)'); gr.addColorStop(1,'rgba(255,190,100,0)');
-    ctx.fillStyle = gr; ctx.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); })();
+  const glowMat = new THREE.SpriteMaterial({ map:softTex, color:0xffc98a, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.32 });
   for (const H of HOUSES){
-    const g = new THREE.Group();
-    const y = 1.1;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.2, 2.8), new THREE.MeshStandardMaterial({ color: H.id==='simssee' ? 0xf1e7d6 : 0xe4d3b8, roughness:.85 }));
-    body.position.y = y + 1.1; body.castShadow = true; body.receiveShadow = true; g.add(body);
-    const roof = new THREE.Mesh(roofGeo, new THREE.MeshStandardMaterial({ color:0x4b392f, roughness:.9, flatShading:true }));
-    roof.position.y = y + 2.2; roof.castShadow = true; g.add(roof);
-    const snowRoof = new THREE.Mesh(roofGeo, new THREE.MeshStandardMaterial({ color:0xf6f8fb, roughness:.8, flatShading:true }));
-    snowRoof.position.y = y + 2.2 + .22; snowRoof.scale.set(1.02, 1, 1.02); g.add(snowRoof);
-    const chim = new THREE.Mesh(new THREE.BoxGeometry(.4,.8,.4), new THREE.MeshStandardMaterial({ color:0x6b5a50 })); chim.position.set(.9, y+3.4, -.5); g.add(chim);
-    for (const [wx, wz, ry] of [[-.8, 1.41, 0],[.8, 1.41, 0],[1.71, .4, Math.PI/2],[1.71, -.6, Math.PI/2]]){
-      const w = new THREE.Mesh(new THREE.PlaneGeometry(.55,.6), windowMat); w.position.set(wx, y+1.1, wz); w.rotation.y = ry; g.add(w);
+    const t = H.tile; const g = new THREE.Group();
+    const wallMat = new THREE.MeshStandardMaterial({ color: H.id==='simssee' ? 0xfaf6ee : 0xf1e3c9, roughness:.85 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.25,.85,1.0), wallMat); body.position.y=.425; g.add(body);
+    const roof = new THREE.Mesh(prism(1.4,.62,1.1), new THREE.MeshStandardMaterial({ color: H.id==='simssee' ? 0x9c3a2e : 0x6b4a3a, roughness:.85, flatShading:true })); roof.position.y=.85; g.add(roof);
+    const rs = new THREE.Mesh(prism(1.44,.62,1.14), new THREE.MeshStandardMaterial({ color:0xf7f9fc, roughness:.9, flatShading:true })); rs.position.y=.95; rs.scale.y=.55; g.add(rs);
+    const chim = new THREE.Mesh(new THREE.BoxGeometry(.16,.4,.16), new THREE.MeshStandardMaterial({ color:0x6b5d55 })); chim.position.set(.38,1.2,-.2); g.add(chim);
+    const wm = new THREE.MeshBasicMaterial({ color:0xffd27a });
+    for (const [wx,wz,ry] of [[-.32,.501,0],[.32,.501,0],[.626,.25,Math.PI/2],[.626,-.25,Math.PI/2],[-.626,.0,-Math.PI/2]]){
+      const w = new THREE.Mesh(new THREE.PlaneGeometry(.22,.26), wm); w.position.set(wx,.42,wz); w.rotation.y = ry; g.add(w);
     }
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.8 }));
-    glow.scale.set(9, 9, 1); glow.position.y = y + 1.6; g.add(glow);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(3.2, 3.6, 48), new THREE.MeshBasicMaterial({ color:0xf0c37a, transparent:true, opacity:.75, side:THREE.DoubleSide }));
-    ring.rotation.x = -Math.PI/2; ring.position.y = y + .06; g.add(ring);
-    const pin = new THREE.Mesh(new THREE.OctahedronGeometry(.7), new THREE.MeshStandardMaterial({ color:0xf0c37a, emissive:0x8a6a2a, roughness:.3, metalness:.3 }));
-    pin.position.y = y + 6; g.add(pin);
-    g.position.set(H.pos[0], 0, H.pos[2]); g.scale.setScalar(1.35);
-    g.userData = { house:H, ring, pin }; g.traverse(o => { if (o.isMesh) { o.userData.houseId = H.id; houseMeshes.push(o); } });
-    scene.add(g); H.group = g; H.world = new THREE.Vector3(H.pos[0], 1.1*1.35 + 3, H.pos[2]);
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(.2,.34), new THREE.MeshStandardMaterial({ color:0x5a3f30 })); door.position.set(0,.17,.501); g.add(door);
+    const glow = new THREE.Sprite(glowMat.clone()); glow.scale.set(1.9,1.9,1); glow.position.y=.55; g.add(glow);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(1.05,1.2,48), new THREE.MeshBasicMaterial({ color:0xf0c37a, transparent:true, opacity:.8, side:THREE.DoubleSide })); ring.rotation.x=-Math.PI/2; ring.position.y=.02; g.add(ring);
+    const pin = new THREE.Mesh(new THREE.OctahedronGeometry(.26), new THREE.MeshStandardMaterial({ color:0xf0c37a, emissive:0x8a6a2a, roughness:.3, metalness:.3 })); pin.position.y=2.3; g.add(pin);
+    const light = new THREE.PointLight(0xffb870, 6, 5, 2); light.position.set(0,.6,.9); g.add(light);
+    g.traverse(o => { if (o.isMesh && o !== ring){ o.castShadow = true; o.receiveShadow = true; o.userData.houseId = H.id; houseMeshes.push(o); } });
+    // face the lake
+    const L = LAKES[H.id]; g.rotation.y = Math.atan2(L.cx - t.x, L.cz - t.z);
+    g.position.set(t.x, t.h, t.z); g.scale.setScalar(1.18); scene.add(g);
+    H.group = g; H.ring = ring; H.pin = pin; H.world = new THREE.Vector3(t.x, t.h+.7, t.z);
+    smokeBases.push(new THREE.Vector3(.38,1.42,-.2).multiplyScalar(1.18).applyAxisAngle(new THREE.Vector3(0,1,0), g.rotation.y).add(g.position));
+    // a small house or two next to it
+    for (let i=0;i<2;i++){ const a = g.rotation.y + Math.PI + (i?.75:-.75); addHouse(t.x+Math.sin(a)*1.25, t.h, t.z+Math.cos(a)*1.25, rnd()*6, .75); }
   }
 
-  // snow
-  const snowCount = isMobile ? 1400 : 2600;
+  /* ---- chimney smoke ---- */
+  const PUFFS = 3, smokeN = smokeBases.length*PUFFS;
+  const smokePos = new Float32Array(smokeN*3), smokePhase = new Float32Array(smokeN);
+  for (let i=0;i<smokeN;i++) smokePhase[i] = rnd();
+  const smokeGeo = new THREE.BufferGeometry(); smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos,3));
+  const smoke = new THREE.Points(smokeGeo, new THREE.PointsMaterial({ map:softTex, color:0xffffff, size:.55, transparent:true, opacity:.6, depthWrite:false, sizeAttenuation:true }));
+  scene.add(smoke);
+
+  /* ---- snowfall ---- */
+  const snowCount = isMobile ? 900 : 1600;
   const sPos = new Float32Array(snowCount*3), sVel = new Float32Array(snowCount);
-  for (let i=0;i<snowCount;i++){ sPos[i*3] = (Math.random()-.5)*(MAP_W+40); sPos[i*3+1] = Math.random()*80; sPos[i*3+2] = (Math.random()-.5)*(MAP_D+40); sVel[i] = 5 + Math.random()*6; }
-  const sGeo = new THREE.BufferGeometry(); sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
-  const flakeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const ctx = c.getContext('2d');
-    const gr = ctx.createRadialGradient(16,16,0,16,16,16); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.5,'rgba(255,255,255,.6)'); gr.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle = gr; ctx.fillRect(0,0,32,32); return new THREE.CanvasTexture(c); })();
-  const snow = new THREE.Points(sGeo, new THREE.PointsMaterial({ map:flakeTex, color:0xffffff, size:1.1, transparent:true, opacity:.85, depthWrite:false, sizeAttenuation:true }));
-  scene.add(snow);
+  for (let i=0;i<snowCount;i++){ sPos[i*3]=(Math.random()-.5)*44; sPos[i*3+1]=Math.random()*24; sPos[i*3+2]=(Math.random()-.5)*72; sVel[i]=1.2+Math.random()*1.4; }
+  const sGeo = new THREE.BufferGeometry(); sGeo.setAttribute('position', new THREE.BufferAttribute(sPos,3));
+  scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({ map:softTex, color:0xffffff, size:.26, transparent:true, opacity:.8, depthWrite:false, sizeAttenuation:true })));
+
 
   /* ---------- camera rig ---------- */
-  const center = new THREE.Vector3(2, 4, -2);
-  const rig = { dist:170, el:THREE.MathUtils.degToRad(57), az:0 };
-  const cam = { pos:new THREE.Vector3(), target:center.clone() };          // what we actually look from / at
-  const anim = { active:false, t:0, dur:1.1, fromPos:new THREE.Vector3(), fromTgt:new THREE.Vector3(), toPos:new THREE.Vector3(), toTgt:new THREE.Vector3() };
+  let minX=1e9,maxX=-1e9,minZ=1e9,maxZ=-1e9; for (const t of tiles){ minX=Math.min(minX,t.x-1); maxX=Math.max(maxX,t.x+1); minZ=Math.min(minZ,t.z-1); maxZ=Math.max(maxZ,t.z+1); }
+  const center = new THREE.Vector3((minX+maxX)/2, .8, (minZ+maxZ)/2 + 1.5);
+  const rig = { dist:60, el:THREE.MathUtils.degToRad(42), az:THREE.MathUtils.degToRad(-14) };
+  const cam = { pos:new THREE.Vector3(), target:center.clone() };
+  const anim = { active:false, t:0, dur:1.2, fromPos:new THREE.Vector3(), fromTgt:new THREE.Vector3(), toPos:new THREE.Vector3(), toTgt:new THREE.Vector3() };
   let focused = null;
-
   function orbitPos(out, dist, el, az){ out.set(center.x + dist*Math.sin(az)*Math.cos(el), center.y + dist*Math.sin(el), center.z + dist*Math.cos(az)*Math.cos(el)); }
-  const corners = [];
-  for (const x of [-MAP_W/2, MAP_W/2]) for (const z of [-MAP_D/2, MAP_D/2]) corners.push(new THREE.Vector3(x, 0, z));
-  corners.push(new THREE.Vector3(0, 0, -MAP_D/2+16)); corners[corners.length-1].y = 58; // far peaks
+  const corners = tiles.map(t => new THREE.Vector3(t.x, t.h + (t.type==='mountain' ? 2.2 : 1.4), t.z));
   const probe = new THREE.Vector3();
   function fit(){
     const w = container.clientWidth, h = container.clientHeight;
     renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix();
-    let d = 90;
-    for (let i=0;i<80;i++){
-      orbitPos(camera.position, d, rig.el, 0); camera.lookAt(center); camera.updateMatrixWorld();
+    const portrait = h > w*1.1;
+    const yTop = portrait ? .46 : .58, yBot = portrait ? -.86 : -.95, xLim = portrait ? .99 : .9;
+    let d = 30;
+    for (let i=0;i<120;i++){
+      orbitPos(camera.position, d, rig.el, rig.az); camera.lookAt(center); camera.updateMatrixWorld();
       let ok = true;
-      for (const c of corners){ probe.copy(c).project(camera); if (Math.abs(probe.x) > .96 || probe.y > .62 || probe.y < -.98) { ok = false; break; } }
-      if (ok) break; d *= 1.04;
+      for (const c of corners){ probe.copy(c).project(camera); if (Math.abs(probe.x) > xLim || probe.y > yTop || probe.y < yBot){ ok=false; break; } }
+      if (ok) break; d *= 1.03;
     }
-    rig.dist = d;
+    rig.dist = d; scene.fog.near = d + 25; scene.fog.far = d + 120;
   }
-  fit();
-  orbitPos(cam.pos, rig.dist, rig.el, 0);
-  camera.position.copy(cam.pos); camera.lookAt(cam.target);
+  fit(); orbitPos(cam.pos, rig.dist, rig.el, rig.az); camera.position.copy(cam.pos); camera.lookAt(cam.target);
 
-  /* ---------- labels ---------- */
-  const labelsEl = document.getElementById('labels');
+  /* ---------- labels & callout ---------- */
   for (const H of HOUSES){
-    const el = document.createElement('button'); el.className = 'pill'; el.type = 'button';
+    const el = document.createElement('button'); el.className='pill'; el.type='button';
     el.innerHTML = `<span class="dot"></span>${H.lake} <span class="r">${H.region}</span>`;
     el.addEventListener('click', e => { e.stopPropagation(); focusHouse(H); });
     labelsEl.appendChild(el); H.label = el;
@@ -487,46 +633,41 @@ if (renderer){
   document.getElementById('c-more').addEventListener('click', () => { if (focused) goToCard(focused); });
   document.querySelectorAll('[data-focus]').forEach(b => b.addEventListener('click', () => {
     const H = HOUSES.find(h => h.id === b.dataset.focus);
-    window.scrollTo({ top:0, behavior:'smooth' });
-    setTimeout(() => focusHouse(H), 350);
+    window.scrollTo({ top:0, behavior:'smooth' }); setTimeout(() => focusHouse(H), 400);
   }));
   function goToCard(H){
-    const card = document.getElementById('card-' + H.id);
+    const card = document.getElementById('card-'+H.id);
     card.scrollIntoView({ behavior:'smooth', block:'start' });
     document.querySelectorAll('.card').forEach(c => c.classList.remove('is-active'));
     card.classList.add('is-active'); setTimeout(() => card.classList.remove('is-active'), 2600);
   }
-  function startAnim(toPos, toTgt){
-    anim.fromPos.copy(cam.pos); anim.fromTgt.copy(cam.target); anim.toPos.copy(toPos); anim.toTgt.copy(toTgt); anim.t = 0; anim.active = true;
-  }
-  const off = new THREE.Vector3();
+  function startAnim(toPos, toTgt){ anim.fromPos.copy(cam.pos); anim.fromTgt.copy(cam.target); anim.toPos.copy(toPos); anim.toTgt.copy(toTgt); anim.t=0; anim.active=true; }
   function focusHouse(H){
     focused = H;
-    off.set(9, 13, 20);
-    if (H.id === 'koenigssee') off.set(-10, 12, 22);
-    if (H.id === 'weissensee') off.set(12, 12, 19);
-    const toPos = new THREE.Vector3().copy(H.world).add(off);
-    const toTgt = new THREE.Vector3(H.world.x, H.world.y - 1.5, H.world.z - 2);
+    const L = LAKES[H.id]; const dir = new THREE.Vector3(H.world.x - L.cx, 0, H.world.z - L.cz).normalize(); // from the lake towards the house
+    const side = new THREE.Vector3(dir.z, 0, -dir.x);                                           // perpendicular, for a slightly off-axis view
+    const toTgt = new THREE.Vector3().copy(H.world).addScaledVector(dir, -2.2).add(new THREE.Vector3(0, -.3, 0));
+    // distance so that ~7 units of width and ~9 units of height are visible, whatever the screen aspect
+    const vf = THREE.MathUtils.degToRad(camera.fov/2), hf = Math.atan(Math.tan(vf)*camera.aspect);
+    const d = Math.max(7/(2*Math.tan(hf)), 9/(2*Math.tan(vf)));
+    const el = THREE.MathUtils.degToRad(38), az = THREE.MathUtils.degToRad(22);
+    const camDir = new THREE.Vector3().addScaledVector(dir, Math.cos(az)).addScaledVector(side, Math.sin(az)).multiplyScalar(Math.cos(el)).add(new THREE.Vector3(0, Math.sin(el), 0));
+    const toPos = new THREE.Vector3().copy(toTgt).addScaledVector(camDir, d);
     startAnim(toPos, toTgt);
-    document.getElementById('c-lake').textContent = H.lake;
-    document.getElementById('c-sub').textContent = H.sub;
-    calloutEl.classList.add('show');
-    HOUSES.forEach(h => h.label.classList.add('hidden'));
+    document.getElementById('c-lake').textContent = H.lake; document.getElementById('c-sub').textContent = H.sub;
+    calloutEl.classList.add('show'); HOUSES.forEach(h => h.label.classList.add('hidden'));
   }
   function unfocus(){
-    focused = null; calloutEl.classList.remove('show');
-    HOUSES.forEach(h => h.label.classList.remove('hidden'));
-    const toPos = new THREE.Vector3(); orbitPos(toPos, rig.dist, rig.el, rig.az);
-    startAnim(toPos, center);
+    focused = null; calloutEl.classList.remove('show'); HOUSES.forEach(h => h.label.classList.remove('hidden'));
+    const toPos = new THREE.Vector3(); orbitPos(toPos, rig.dist, rig.el, rig.az); startAnim(toPos, center);
   }
 
-  /* ---------- tap handling (does not block page scrolling) ---------- */
-  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-  let down = null;
+  /* ---------- tap handling (page scrolling stays free) ---------- */
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(); let down = null;
   renderer.domElement.addEventListener('pointerdown', e => { down = { x:e.clientX, y:e.clientY, t:performance.now() }; });
   renderer.domElement.addEventListener('pointerup', e => {
     if (!down) return; const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y), dt = performance.now()-down.t; down = null;
-    if (moved > 10 || dt > 500) return;
+    if (moved > 10 || dt > 600) return;
     const r = renderer.domElement.getBoundingClientRect();
     ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
     ray.setFromCamera(ndc, camera);
@@ -536,7 +677,7 @@ if (renderer){
   });
 
   /* ---------- loop ---------- */
-  let visible = true; const io = new IntersectionObserver(en => { visible = en[0].isIntersecting; }, { threshold:0 }); io.observe(container);
+  let visible = true; new IntersectionObserver(en => { visible = en[0].isIntersecting; }, { threshold:0 }).observe(container);
   const clock = new THREE.Clock(); let t = 0;
   const ease = x => x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
   const tmpV = new THREE.Vector3();
@@ -544,36 +685,33 @@ if (renderer){
     requestAnimationFrame(frame);
     if (!visible || document.hidden) return;
     const dt = Math.min(clock.getDelta(), .05); t += dt;
-    // camera
     if (anim.active){
       anim.t += dt/anim.dur; const k = ease(Math.min(1, anim.t));
       cam.pos.lerpVectors(anim.fromPos, anim.toPos, k); cam.target.lerpVectors(anim.fromTgt, anim.toTgt, k);
       if (anim.t >= 1) anim.active = false;
     } else if (!focused){
-      rig.az = reduceMotion ? 0 : Math.sin(t*.12)*0.07;
-      orbitPos(cam.pos, rig.dist, rig.el + (reduceMotion ? 0 : Math.sin(t*.09)*.015), rig.az); cam.target.copy(center);
+      const sway = reduceMotion ? 0 : Math.sin(t*.1)*.045;
+      orbitPos(cam.pos, rig.dist, rig.el + (reduceMotion ? 0 : Math.sin(t*.07)*.012), rig.az + sway); cam.target.copy(center);
     }
     camera.position.copy(cam.pos); camera.lookAt(cam.target);
-    // snow
     if (!reduceMotion){
       const a = sGeo.attributes.position.array;
-      for (let i=0;i<snowCount;i++){ a[i*3+1] -= sVel[i]*dt; a[i*3] += Math.sin(t*.8 + i)*dt*1.2; if (a[i*3+1] < -1){ a[i*3+1] = 80; a[i*3] = (Math.random()-.5)*(MAP_W+40); a[i*3+2] = (Math.random()-.5)*(MAP_D+40); } }
+      for (let i=0;i<snowCount;i++){ a[i*3+1] -= sVel[i]*dt; a[i*3] += Math.sin(t*.7+i)*dt*.35; if (a[i*3+1] < 0){ a[i*3+1]=24; a[i*3]=(Math.random()-.5)*44; a[i*3+2]=(Math.random()-.5)*72; } }
       sGeo.attributes.position.needsUpdate = true;
-    }
-    // markers
+      for (let i=0;i<smokeN;i++){ const b = smokeBases[Math.floor(i/PUFFS)]; const ph = (t*.22 + smokePhase[i]) % 1;
+        smokePos[i*3] = b.x + Math.sin(t*.9 + smokePhase[i]*9)*.12*ph; smokePos[i*3+1] = b.y + ph*1.4; smokePos[i*3+2] = b.z + ph*.25; }
+      smokeGeo.attributes.position.needsUpdate = true;
+    } else if (t < .1){ for (let i=0;i<smokeN;i++){ const b = smokeBases[Math.floor(i/PUFFS)]; smokePos[i*3]=b.x; smokePos[i*3+1]=b.y+.3+smokePhase[i]; smokePos[i*3+2]=b.z; } smokeGeo.attributes.position.needsUpdate = true; }
     for (const H of HOUSES){
-      const { ring, pin } = H.group.userData;
-      const p = 1 + Math.sin(t*2.2)*.08; ring.scale.set(p, p, 1); ring.material.opacity = .45 + Math.sin(t*2.2)*.25;
-      pin.position.y = 1.1 + 6 + Math.sin(t*1.7 + H.pos[0])*.35; pin.rotation.y = t*.9;
-      // label position
-      tmpV.copy(H.world).add(new THREE.Vector3(0, 7.5*1.35, 0)).project(camera);
-      const x = (tmpV.x*.5+.5)*container.clientWidth, y = (-tmpV.y*.5+.5)*container.clientHeight;
-      H.label.style.left = x + 'px'; H.label.style.top = y + 'px';
+      const p = 1 + Math.sin(t*2.2)*.08; H.ring.scale.set(p,p,1); H.ring.material.opacity = .5 + Math.sin(t*2.2)*.25;
+      H.pin.position.y = 2.3 + Math.sin(t*1.7 + H.world.x)*.15; H.pin.rotation.y = t*.9;
+      tmpV.copy(H.world).add(new THREE.Vector3(0, 2.6, 0)).project(camera);
+      H.label.style.left = ((tmpV.x*.5+.5)*container.clientWidth) + 'px'; H.label.style.top = ((-tmpV.y*.5+.5)*container.clientHeight) + 'px';
     }
     renderer.render(scene, camera);
   }
   frame();
-  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { fit(); if (!focused) { orbitPos(cam.pos, rig.dist, rig.el, rig.az); } }, 120); });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { fit(); if (!focused){ orbitPos(cam.pos, rig.dist, rig.el, rig.az); } }, 120); });
 }
 </script>
 </body>
