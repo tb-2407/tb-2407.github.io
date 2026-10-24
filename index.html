@@ -88,7 +88,8 @@
   .list li:first-child{border-top:0}
   .list li::before{content:"";position:absolute;left:3px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--accent);opacity:.9}
   .list li b{color:#fff;font-weight:600}
-  .actions{display:flex;gap:10px;margin-top:20px}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+  .actions .btn.full{flex-basis:100%}
   .actions .btn{flex:1;padding:13px 10px;font-size:13.5px}
   footer{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 20px calc(env(safe-area-inset-bottom) + 40px);line-height:1.7}
   footer .big{font-family:"Cormorant Garamond",serif;font-size:26px;color:var(--ink);font-style:italic;margin:0 0 6px}
@@ -159,7 +160,8 @@
       <li><b>Füssen Altstadt</b> mit Lechfall und Cafés, 10 Minuten. Kristall-Therme Schwangau zum Aufwärmen.</li>
     </ul>
     <div class="actions">
-      <a class="btn primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Gschrifter+Stra%C3%9Fe+5c%2C+87629+F%C3%BCssen&travelmode=driving">Route anzeigen</a>
+      <a class="btn primary full" target="_blank" rel="noopener" href="https://www.booking.com/hotel/de/haus-am-see-fussen.de.html">Unterkunft bei Booking ansehen</a>
+      <a class="btn ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Gschrifter+Stra%C3%9Fe+5c%2C+87629+F%C3%BCssen&travelmode=driving">Route anzeigen</a>
       <button class="btn ghost" type="button" data-focus="weissensee">Auf der Karte</button>
     </div>
   </section>
@@ -200,7 +202,8 @@
       <li><b>Chiemgau Thermen Bad Endorf</b>, 10 Minuten. Rosenheim mit Altstadt, 15 Minuten.</li>
     </ul>
     <div class="actions">
-      <a class="btn primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Seewirt+Ecking%2C+Am+See+27%2C+83083+Riedering&travelmode=driving">Route anzeigen</a>
+      <a class="btn primary full" target="_blank" rel="noopener" href="https://www.booking.com/hotel/de/seewirt-ecking.de.html">Unterkunft bei Booking ansehen</a>
+      <a class="btn ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Seewirt+Ecking%2C+Am+See+27%2C+83083+Riedering&travelmode=driving">Route anzeigen</a>
       <button class="btn ghost" type="button" data-focus="simssee">Auf der Karte</button>
     </div>
   </section>
@@ -242,7 +245,8 @@
       <li><b>Berchtesgaden</b> mit Salzbergwerk und Watzmann-Therme, 10 Minuten. Salzburg, 35 Minuten.</li>
     </ul>
     <div class="actions">
-      <a class="btn primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Sch%C3%B6nau+am+K%C3%B6nigssee&travelmode=driving">Route anzeigen</a>
+      <a class="btn primary full" target="_blank" rel="noopener" href="https://www.airbnb.de/rooms/1292581607626013533">Unterkunft bei Airbnb ansehen</a>
+      <a class="btn ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=Lohne%2C+Wietmarschen&destination=Sch%C3%B6nau+am+K%C3%B6nigssee&travelmode=driving">Route anzeigen</a>
       <button class="btn ghost" type="button" data-focus="koenigssee">Auf der Karte</button>
     </div>
   </section>
